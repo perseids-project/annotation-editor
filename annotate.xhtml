@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>Alpheios:Annotate Passage</title>
+        
+       <!-- Parameters controlling behavior of the editor
+         All names are prefixed in the <meta> tags with "alpheios-param-".
+         All can be overridden by parameters supplied at invocation time to
+         the url, using the names below without the "alpheios-param-" prefix.
+            app: [editor|viewer]
+              Whether we're editing or just viewing the alignment.
+              If set to "viewer", other parameters controlling editing
+              behavior will be ignored.
+     
+        -->
+        <meta name="alpheios-param-app" content="editor"/>
+        <meta name="alpheios-param-numSentences" content="1"/>
+     
+        
+        <!-- a session cookie and HTTP header name can be supplied for session sharing with a server on the same domain
+         the content of the alpheios-sessionTokenName attribute should be the name of the cookie set by the server
+         the content of the alpheios-sessionHeaderName attribute should be the name of the HTTP header to send the token back to the server in -->
+        <meta name="alpheios-sessionTokenName" content="csrftoken"/>
+        <meta name="alpheios-sessionHeaderName" content="X-CSRF-Token"/>
+        
+        <!-- URLs to get and put a single annotation -->
+        <!-- The urls should contain the following placeholders which will be filled by 
+         the application:
+         DOC_REPLACE : gets replaced with the document identifier
+         S_REPLACE : gets replaced with the sentence identifier
+        -->
+        <meta name="alpheios-getAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DS_REPLACE"/>
+        <meta name="alpheios-putAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DS_REPLACE"/>
+        <meta name="alpheios-getInfoURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/info/json"/>
+        
+        <!-- URL to call when exiting and label to use on exit button -->
+        <!-- The url should contain the following placeholders which will be filled by 
+         the application:
+         DOC_REPLACE : gets replaced with the document identifier
+        -->
+        <meta name="alpheios-exitURL" content="http://sosol.perseids.org/sosol/dmm_api/item/AlignmentCite/DOC_REPLACE/return/edit"/>
+        <meta name="alpheios-exitLabel" content="Sentence&#160;list"/>
+        
+        
+        <link rel="stylesheet" type="text/css" href="annotate.css"/>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <script type="text/javascript" src="jshashtable-3.0.js"></script>
+        <script type="text/javascript" src="http://localhost:8080/exist/rest/db/script/alph-edit-utils.js"></script>
+        <script type="text/javascript" src="alph-annot-edit.js"></script>
+        
+        
+    </head>
+    <body onload="Init(event,true)">
+        
+        <div id="align-title"><span class="alpheios-document-id"/></div>    
+        
+        <div class="alpheios-ignore">
+          <div id="alph-page-header">
+            <img src="http://sosol.perseids.org/sosol/images/perseids_notag_150.png" alt="Perseids Logo"/>
+          </div>
+        </div>
+           
+       <table style="border:none; padding:0; width:100%">
+        <tr>
+            <td>
+                <div class="controls alpheios-ignore" id="edit-controls">
+                    <table style="border:none; padding:0">
+                        <tr>
+                            <td>
+                                <div id="sent-navigation">
+                                    <table style="border:1px solid black; padding:0">
+                                        <tr>
+                                            <td>
+                                                <button id="first-button" onclick="ClickOnGoTo(event)"
+                                                    >&#160;</button>
+                                            </td>
+                                            <td>
+                                                <button id="prev-button" onclick="ClickOnGoTo(event)"
+                                                    >&#160;</button>
+                                            </td>
+                                            <td>
+                                                <label id="current-label">&#160;</label>
+                                            </td>
+                                            <td>
+                                                <button id="next-button" onclick="ClickOnGoTo(event)"
+                                                    >&#160;</button>
+                                            </td>
+                                            <td>
+                                                <button id="last-button" onclick="ClickOnGoTo(event)"
+                                                    >&#160;</button>
+                                            </td>
+                                            <td>
+                                                <form onsubmit="return SubmitGoTo(this)"
+                                                    name="sent-navigation-goto">
+                                                    <label>&#160;&#160;Go&#160;to&#160;sentence&#160;number</label>
+                                                    <input type="text" name="s" size="5"/>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </td>
+                            <td>
+                                <form onsubmit="return SubmitExit(this)" name="sent-navigation-exit">
+                                    <input type="hidden" name="doc"/>
+                                    <input type="hidden" name="s"/>
+                                    <button type="submit">Exit</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                    <!-- TODO hide if not allow save -->
+                <button id="save-button" onclick="ClickOnSave(event)">Save sentence</button>
+                <button id="undo-button" onclick="ClickOnUndo(event)">&lt; Undo</button>
+                <button id="redo-button" disabled="yes" onclick="ClickOnRedo(event)">Redo &gt;</button>
+            
+                <form method="post" action="../xq/align-export.xq" id="exportform">
+                      <button id="export-xml-button"
+                          onclick="ClickOnExport(event)">Export XML</button>
+                    <input type="hidden" name="doc" value=""/>
+                    <input type="hidden" name="sentenceForExport" id="sentenceForExport"/>
+                </form>
+                <form method="post" action="../xq/align-display.xq" id="exportdisplayform">
+                      <button id="export-display-button"
+                          onclick="return ClickOnExportDisplay(event);">Export Display</button>
+                      <input type="hidden" name="doc" value=""/>
+                      <input type="hidden" name="sentenceForDisplay" id="sentenceForDisplay"/>
+                  </form>,
+               </td>
+           </tr>
+       </table>
+    
+    
+        <div id="alpheios-trigger-hint" class="alpheios-ignore alpheios-trigger-hint alpheios-hint"/>
+        <div id="alpheios-put-notice"/>
+        <form id="update" action="POST" onsubmit="return check_input();">
+            <input type="hidden" name="valid_targets"/>
+            <ul class="hints">
+                <li>Enter a URI identifying a resource that annotates your selected passage.</li>
+                <li> Or choose an annotation resource from the drop-downs and click
+                    'Request Resource' to load the corresponding text.</li>
+                <li>You can also select more specific passages within either text with your mouse. This will automatically
+                    generate a more specific URI for your annotation.</li>
+            </ul>
+            <div id="annotation_target_input">
+                <div class="annotation_header">Annotation Target</div>
+                <fieldset id="annotation_target_fields">
+                    <div class="targets" id="targets">
+                        <label>URI For Target:</label>
+                    </div>
+                     <div class="add_target">
+                         <label>(to select another range from within this passage)</label>
+                         <button id="add_target">Add</button>
+                     </div>
+                </fieldset>
+                <label>Target Passage:</label>
+                <div id="target_content" class="target">
+                    <div class="loading">Loading...</div>
+                </div>    
+                <div id="annotation_motivation_input">
+                </div>
+            </div>
+            <div id="annotation_body_input">
+                <div class="annotation_header">Annotation Resource</div>
+                <label>URI for Resource:</label>
+                <input type="text" name="body_uri" class="body_uri"/>
+                <div id="annotation_commentary_link">
+                    
+                </div>
+                <div id="cite_annotation_selector">
+                </div>
+                <div id="cts_annotation_selector">
+                </div>
+            </div>
+        </form>
+        <form action="delete_annotation"></form>
+        <form action="create_commentary"></form>
+    </body>
+</html>

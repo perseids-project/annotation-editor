@@ -1,0 +1,91 @@
+.clearfix:after {
+    content: "."; 
+    display: block; 
+    height: 0; 
+    clear: both; 
+    visibility: hidden;
+}
+.clearfix {
+  display: inline-block;
+}
+* html .clearfix {
+  height: 1%;
+}
+.clearfix {
+  display: block;
+}
+.clear { 
+  clear:both;
+}
+body {
+  margin-left: .5em;
+}
+#target_content, 
+#body_content  {
+  height: 200px;
+  overflow: scroll;
+  border: 1px solid black;
+
+}
+#target_content .token {}
+.target_uri,.body_uri  {
+  width: 98%;
+  font-size: small;
+}
+#target_content .token.highlighted, #body_content .token.highlighted {
+  background-color: #FFFF99;
+}
+#target_content .token.highlighted.selected, #body_content .token.highlighted.selected {
+  font-weight: bold;
+}
+#annotation_target_input, #annotation_body_input {
+  float: left;  
+  width: 48%;
+  padding: .25em;
+  border: 1.5px solid black;
+}
+#annotation_motivation_input {
+  margin: .25em;
+  float: right;
+}
+#annotation_form_submit {
+  clear: both;
+}
+.edit_oac_identifier .add_target {
+  text-align: right;
+}
+
+.hints {
+    margin-bottom: .5em;
+    margin-left: 1em;
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #FFFFDD;
+}
+.hints li {
+  list-style: circle;
+  list-style-position: inside;
+}
+.oac_annotation .label {
+  font-weight: bold;
+  font-style:italic;
+  padding-right: .5em;
+}
+.cite_to, .cite_from {
+  width: 3em;
+  font-size: smaller;
+}
+.cite_from_label, .cite_to_label {
+  font-size: smaller;
+}
+.cite_span_label {
+  font-style: italic;
+  font-size: smaller;
+}
+
+#annotation_target_input #title_placeholder {
+  min-height: 2em;
+}
+.annotation_header {
+  font-weight: bold;
+  margin-bottom: .5em;
+}
