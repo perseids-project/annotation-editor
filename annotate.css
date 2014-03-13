@@ -89,3 +89,8 @@ body {
   font-weight: bold;
   margin-bottom: .5em;
 }
+
+select[name='group_urn'], select[name='work_urn'], select[name='version_urn']   {
+    min-width: 5em;
+    display: none;
+}

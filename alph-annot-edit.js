@@ -1,8 +1,16 @@
+// TODO this all should be namespaced to remove global vars
 var subref_start;
 var subref_end;
 var target_num = 1;
 var current_target;
 var all_targets = new Hashtable();
+var inventories = {};
+var body_span = [];
+var repos = {};
+var body_urn_parts = {};
+var body_subref_start;
+var body_subref_end;
+  
 var current_annotation_target = null;
 var s_getAnnotationURL = null;
 var s_putAnnotationURL = null;
@@ -68,7 +76,7 @@ function Init(e_event,a_load) {
             s_config = data;
         }
     ).fail(
-        function(req) { 
+        function(jqXHR, textStatus, errorThrown) { 
             var msg = "Can't get Service Info";
             alert(msg);
             throw(msg);
@@ -84,7 +92,7 @@ function Init(e_event,a_load) {
             s_passageTransform.importStylesheet(data);   
         }
     ).fail(
-        function(req) { 
+        function(jqXHR, textStatus, errorThrown) { 
             var msg = "Can't get Passage XSLT";
             alert(msg);
             throw(msg);
@@ -102,6 +110,16 @@ function Init(e_event,a_load) {
         }
     );
     $("#add_target").click(function() { add_target(); return false; });
+    // now setup the body
+    $("#body_repo").change(get_cts_inventory);
+    get_repos();
+    $('#group_urn').change(update_work_urns);
+    $('#work_urn').change(update_version_urns);
+    $('#version_urn').change(update_cite_info);
+    $(".cts_selector_hint").click( function() { $("#cts_select_container").toggle(); });
+    $("#cts_request_button").click( function() { return merge_cite_info(); } );
+    $(".cite_selector_hint").click( function() { $("#cite_select_container").toggle();});
+
     InitAnnotation();
   
 }
@@ -169,6 +187,11 @@ function InitAnnotation() {
     $('#target_content .token').mousedown(start_target);
     $('#target_content .token').mouseup(end_target);
     current_target = $('#target_uri1').get(0);
+    
+    //body
+    $('#body_content .token').mousedown(start_body);
+    $('#body_content .token').mouseup(end_body);
+
 }
 
 function get_target_passage() {
@@ -198,7 +221,7 @@ function get_target_passage() {
           set_target_content(a_data);
         }
       }).fail(
-        function() {
+        function(jqXHR, textStatus, errorThrown) {
           $('target_content').innerHTML = '<div class="error">Unable to load the requested text.</div>';
         }
       ); 
@@ -227,7 +250,7 @@ function remove_target_input(to_remove) {
     return false;
 }
   
-  function select_target_input() {
+function select_target_input() {
     if (current_target == this) {
         return;
     }
@@ -237,18 +260,18 @@ function remove_target_input(to_remove) {
       toggle_highlight(false,['selected'],[last_target.name]);
     }
     toggle_highlight(true,['selected'],[current_target.name])
-  }
+}
   
-  function start_target() {
+function start_target() {
     if ($(this).hasClass('punc')) {
         subref_start = $(this).nextAll('.text');
     } else {
         subref_start = this;
     }  
     toggle_highlight(false,['highlighted','selected']);
-  }
+}
   
-  function end_target() {
+function end_target() {
     if ($(this).hasClass('punc')) {
       subref_end = $(this).previous('.text');
     } else {
@@ -273,10 +296,10 @@ function remove_target_input(to_remove) {
     all_targets.put(current_target.name,[subref_start,subref_end]);
     toggle_highlight(true,['highlighted']);
     toggle_highlight(true,['selected'],[current_target.name]);
-  }
+}
   
   
-  function toggle_highlight(a_on,a_classes,a_targets) {
+function toggle_highlight(a_on,a_classes,a_targets) {
     var targets;  
     if (a_targets == null) {
       targets = all_targets.keys();
@@ -318,17 +341,17 @@ function remove_target_input(to_remove) {
           } // end test on set length
         } // end test on set definition
       } // end iterator on each target
-  }
+}
   
-  function set_target_content(a_html) {
+function set_target_content(a_html) {
     var target = $('target_content');
     $('#target_content').html(a_html);
     $('#target_content .token').mousedown(start_target);
     $('#target_content .token').mouseup(end_target);
     reset_current_target();
-  }
+}
   
-  function reset_current_target() {
+function reset_current_target() {
       $('.target_uri').each(
       function() {
         var uri = $(this).val();
@@ -362,9 +385,9 @@ function remove_target_input(to_remove) {
       }
     );
     toggle_highlight(true,['highlighted','selected']);
-  }
+}
   
-  function merge_targets() {
+function merge_targets() {
     var all_targets = $('.target_uri');
     var valid_targets = [];
     var invalid_targets = [];
@@ -389,9 +412,9 @@ function remove_target_input(to_remove) {
       return null;
     }
    
-  }
+}
   
-  function submit_commentary_create() {
+function submit_commentary_create() {
     var valid_targets = merge_targets();
     var messages = [];
     if (null == valid_targets) {
@@ -412,9 +435,9 @@ function remove_target_input(to_remove) {
       $('#commentary_form').submit();
       return false;
     }
-  }
+}
   
-  function check_input() {
+function check_input() {
     var messages = [];
     var valid_targets = merge_targets();
     if (null == valid_targets) {
@@ -441,8 +464,454 @@ function remove_target_input(to_remove) {
       }
       return true;
     }
-  }
+}
    
-  function confirm_delete() {
+function confirm_delete() {
     return confirm("Are you sure you want to delete this annotation?");
+}
+  
+  
+function get_repos() {
+    $.getJSON(s_config['cts_services']['repos']).done(
+        function(a_data) {
+            repos = a_data;
+            populate_body_repo();
+        }
+    ).fail(
+        function(jqXHR, textStatus, errorThrown) {
+            var msg = "Can't get CTS Repositories";
+            alert(msg);
+            throw(msg);    
+        }
+    );
   }
+  
+function populate_body_repo() {
+    update_body_urn_parts();
+    $('#body_repo').append("<option value='-'>click to select...</option>");
+    for (key in repos.keys) {
+      var label = key;
+      // if the repo is for the publication it will be all digits override the label
+      if (label.match(/^\d+$/) ){
+        label = "This Publication"
+      }
+      $('#body_repo').append("<option value='" + key + "'>" + label + "</option>");
+    }
+    $('#body_repo').children().each(
+        function(){
+            if($(this).val() == body_urn_parts.repos){
+                $(this).prop('selected',true);
+                get_cts_inventory();
+                return false;
+            }
+       });
+  }
+  
+function get_cts_inventory() {
+    var inventory = $('#body_repo option:selected').val();
+    if (inventory == '-') {
+        update_group_urns();
+    // if we don't already have this inventory's data, retrieve it and populate the selector
+    } else if (inventories[inventory] == null) {
+        var request_url = s_config['cts_services']['capabilities'] + inventory;
+
+        $.getJSON(request_url).done(
+            function(a_data) {
+                inventories[inventory] = a_data;
+                update_group_urns();
+            }
+        ).fail(
+            function(jqXHR, textStatus, errorThrown) {
+                var msg = "Can't get capabilities of " + inventory;
+                alert(msg);
+                throw(msg);    
+            }
+        );
+      }
+      else {
+        update_group_urns();
+      }
+}
+   
+function clear_selector(select_element) {
+    $("option",select_element).remove();
+}
+  
+function populate_selector(select_element,options,selected_value) {
+    $("option",select_element).remove();
+    var count = 0
+    for (var k=0; k<options.length; k++) {
+      var obj = options[k]
+      for (var i in obj)
+      {
+        if (obj[i].urn != null) {
+          $(select_element).append("<option value='" + obj[i].urn + "'>" + obj[i].label + "</option>");
+          count++;
+        }
+      }
+    }
+    if (count == 0) {
+      $(select_element).prop('disabled',true);
+      $(select_element).hide();
+    } else {
+        if (count > 1) {
+            $(select_element).append("<option value=''>click to select...</option>");
+        } 
+        $(select_element).prop('disabled',false);
+        $(select_element).show();
+    }
+    select_element.children().each(
+        function(){
+            if( $(this).val() == selected_value){
+            $(this).prop('selected',true);
+            return false;
+        }
+    });
+}
+  
+function update_group_urns() {
+    $('#cts_request_button').prop('disabled',true);
+    clear_selector($('#version_urn'));
+    clear_selector($('#work_urn'));
+    var inventory = $('#body_repo option:selected').val();
+    if (inventory == '-') {
+        clear_selector($('group_urn'));
+    } else {
+        //  populate the textgroup selector
+        var groups = inventories[inventory];
+        populate_selector($('#group_urn'),[groups],body_urn_parts.textgroup);
+        update_work_urns();
+    }
+}
+  
+function update_work_urns() {
+    $('#cts_request_button').prop('disabled',true);
+    clear_selector($('#version_urn'));
+    // get the works for the selected textgroup and populate the work selector
+    var inventory = $('#body_repo option:selected').val();
+    var textgroup = $('#group_urn option:selected').val();
+    if (textgroup) { 
+        var works = inventories[inventory][textgroup].works;
+        populate_selector($('#work_urn'),[works],body_urn_parts.work);
+        update_version_urns();
+    }
+  }
+  
+function update_version_urns() {
+    $('#cts_request_button').prop('disabled',true);
+    // get the editions for the selected textgroup and work and populate the edition selector
+    var inventory = $('#body_repo option:selected').val();
+    var textgroup = $('#group_urn option:selected').val();
+    var work = $('#work_urn option:selected').val();
+    var editions = null;
+    var translations = null;
+    if (inventory && textgroup && work) {
+        work = work.replace(textgroup+".",''); 
+        editions = inventories[inventory][textgroup].works[work].editions
+        translations = inventories[inventory][textgroup].works[work].translations
+      
+    }
+    if (editions != null ) {
+        populate_selector($('#version_urn'),[editions,translations],body_urn_parts.version)
+    } else {
+        // still need to empty it out
+        populate_selector($('#version_urn'),[{}])
+        $('#cts_request_button').prop('disabled',true);
+    }
+    update_cite_info();
+}
+  
+function update_body_urn_parts() {
+    // check to see if the pre-populated URI is from one of the registered repositories
+    var body_uri = $('#body_uri').val() || '';
+    urn_match = body_uri.match(/^(.*?)\/(urn:cts:.*)$/)    
+    if (urn_match != null) {
+      urispace = urn_match[1];
+      urn = urn_match[2];
+      body_urn_parts.repos = repos.urispaces[urispace];
+      // try again with the identifier if the end of the uri is digits because it might be from the pub
+      if (! body_urn_parts.repos) {
+        var match_pub = urispace.match(/^(.*?)\/\d+$/);
+        if (match_pub) {
+          body_urn_parts.repos = repos.urispaces[match_pub[1]];
+        }
+      }
+      urn_parts = urn.split(':');
+      version_parts = urn_parts[3].split('.');
+      body_urn_parts.textgroup = urn_parts[2] + ':' + version_parts[0];
+      body_urn_parts.work = urn_parts[2] + ':' + version_parts[0] + "." + version_parts[1];
+      body_urn_parts.version = [urn_parts[0],urn_parts[1],urn_parts[2],urn_parts[3]].join(':');
+      if (urn_parts.length == 5) {
+        body_urn_parts.passage = urn_parts[4].split('@')[0];
+      }
+    } 
+    else {
+      body_urn_parts = {}; 
+    }
+  }
+  
+function update_cite_info() {
+    // clear the #citeinfo div in the form
+    $('#citeinfo').html('');
+    $('#cts_request_button').prop('disabled',true);
+    // get the current edition and repo from the form input
+    var inventory = $('#body_repo option:selected').val();
+    var textgroup = $('#group_urn option:selected').val();
+    var work = $('#work_urn option:selected').val();
+    if (inventory && textgroup && work) { 
+        work = work.replace(textgroup+".",'');
+        var version = $('#version_urn').val().match(/^.*?([^\.]+)$/)[1];
+        // lookup citation labels from stored inventory data
+        // for each citation level, add label and input to the #citeinfo div in the form
+        var citeinfo = 
+            inventories[inventory][textgroup].works[work].editions[version] != null ? 
+            inventories[inventory][textgroup].works[work].editions[version].cites :
+            inventories[inventory][textgroup].works[work].translations[version] != null ? 
+            inventories[inventory][textgroup].works[work].translations[version].cites : [];
+          
+        var range = body_urn_parts.passage ? body_urn_parts.passage.split('-') : [];
+        var values = [];
+        for (var i=0; i<range.length;i++) {
+            values[i] = range[i].split('.');
+        } 
+        $('#citeinfo').append('<span class="cite_span_label">From:</span>');
+      
+        for (var i=0; i<citeinfo.length; i++) {
+            var value = (values[0] != null && values[0].length == citeinfo.length) ? values[0][i] : '';
+            $('#citeinfo').append(
+                '<label class="cite_from_label" for="cite_from' + i + '">' + citeinfo[i] + '</label>' +
+                '<input type="text" name="cite_from_' + i + '" class="cite_from" value="' + value +'"/>');
+        }
+        $('#citeinfo').append('<br/><span class="cite_span_label">To:</span>');
+        for (var i=0; i<citeinfo.length; i++) {
+            var value = (values[1] != null && values[1].length == citeinfo.length) ? values[1][i] : '';
+            $('#citeinfo').append(
+                '<label class="cite_to_label" for="cite_to' + i + '">' + citeinfo[i] + '</label>' +
+                '<input type="text" name="cite_to_' + i + '" class="cite_to" value="' + value +'"/>');
+        }
+    }
+    $('#cts_request_button').prop('disabled',false);
+}
+  
+// Merges the individual components of the citation into the passage component of a CTS URN
+// and validates that at least one component of the starting citation was supplied before
+// submitting the form.
+function merge_cite_info() {
+    try {
+    var start =  $.grep(
+        $.map($('input.cite_from'),
+        function(e,i) { 
+            return e.value; 
+        }),function(a,i) { return a.match(/[\w\d]+/) });
+    if (start.length == 0 ) {
+        alert("Please specify at least one level of the passage citation scheme.");
+        return false;
+    }
+    var end = $.grep(
+        $.map($('input.cite_from'),
+        function(e,i) { 
+            return e.value; 
+        }),function(a,i) { return a.match(/[\w\d]+/) });
+    if (end.length > 0 && end.length != start.length) {
+      alert("Citation start and end must be at the same citation level.");
+      return false;
+    }
+    var urispace = repos.keys[$('#body_repo option:selected').val()]
+    // if the body resource is from the identifier repo, then append the right id
+    var props = body_props_from_form();
+    if (props.item_id) {
+          urispace = urispace + '/' + props.item_id
+    }
+    var uri =  urispace + "/" + $('#version_urn option:selected').val() + ':' + start.join('.');
+    if (end.length > 0) {
+        uri = uri + '-' + end.join('.');
+    }
+    var uri_match = new RegExp("^" + uri + '@');
+    var old_uri_value = $('#body_uri').val();
+    // hack to prevent replacement of uri during board review
+    if (!old_uri_value || (old_uri_value.match(uri_match) == null && s_param['app'] == 'editor')) {
+        $('#body_uri').val(uri);
+    }
+    get_body_passage();
+    } catch (a_e) {
+        console.log(a_e);
+    }
+    return false;
+  }
+  
+function body_props_from_form() {
+    var inventory = $('#body_repo option:selected').val();
+    var textgroup = $('#group_urn option:selected').val();
+    var work = $('#work_urn option:selected').val().replace(textgroup+".",''); 
+    var version = $('#version_urn option:selected').val();
+    var lookup_ver = version.match(/^.*?([^\.]+)$/)[1];
+    var props = 
+      inventories[inventory][textgroup].works[work].editions[lookup_ver] != null ? 
+      inventories[inventory][textgroup].works[work].editions[lookup_ver] : 
+      inventories[inventory][textgroup].works[work].translations[lookup_ver] != null ? 
+      inventories[inventory][textgroup].works[work].translations[lookup_ver] : {};
+    return props; 
+}
+  
+function get_body_passage() {
+    $('#body_content').html('<div class="loading">Loading...</div>');
+    var passage =  $.grep(
+        $.map($('input.cite_from'),
+        function(e,i) { 
+            return e.value; 
+        }),function(a,i) { return a.match(/[\w\d]+/) }).join('.');    
+    var end_range = $.grep(
+        $.map($('input.cite_to'),
+        function(e,i) { 
+            return e.value; 
+        }),function(a,i) { return a.match(/[\w\d]+/) }).join('.');
+    if (end_range.length > 0) {
+      passage = passage + '-' + end_range;
+    }
+    var inventory = $('#body_repo option:selected').val();
+    var textgroup = $('#group_urn option:selected').val();
+    var work = $('#work_urn option:selected').val().replace(textgroup+".",''); 
+    var version = $('#version_urn option:selected').val();
+    var lookup_ver = version.match(/^.*?([^\.]+)$/)[1];
+    var props = 
+      inventories[inventory][textgroup].works[work].editions[lookup_ver] != null ? 
+      inventories[inventory][textgroup].works[work].editions[lookup_ver] : 
+      inventories[inventory][textgroup].works[work].translations[lookup_ver] != null ? 
+      inventories[inventory][textgroup].works[work].translations[lookup_ver] : {};
+    var lang = props.lang || 'default';
+    var request_inventory = props.item_id || inventory; 
+
+    var passage_url = s_config['cts_services']['passage'] + request_inventory  + "/" + version + ":" + passage;
+    
+    var tokenizer_cfg = s_config.tokenizer;
+    var tokenizer_url;
+    if (tokenizer_cfg[lang]) {
+      tokenizer_url = tokenizer_cfg[lang].request_url;
+    } else {
+      tokenizer_url = tokenizer_cfg['default'].request_url;
+    } 
+    var request_url = tokenizer_url + encodeURIComponent(passage_url);
+
+    $.get(request_url).done(
+      function(a_data) {
+        if (s_passageTransform != null) {
+            var content = s_passageTransform.transformToDocument(a_data);
+            var div = $("div",content);
+            if (div.length > 0) {
+                set_body_content(div.get(0).innerHTML);
+            } else {
+                set_body_content('<div class="error">Unable to transform the requested text.</div>')
+            }
+          } else {
+          set_body_content(a_data);
+        }
+      }).fail(
+        function() {
+          $('target_content').innerHTML = '<div class="error">Unable to load the requested text.</div>';
+        }
+      );  
+}
+  
+  
+function start_body() {
+    if ($(this).hasClass('punc')) {
+        body_subref_start = $(this).nextAll('.text');
+    } else {
+        body_subref_start = this;
+    }  
+    toggle_body_highlight(false,['highlighted','selected']);
+}
+  
+function end_body() { 
+    if ($(this).hasClass('punc')) {
+      body_subref_end = $(this).previous('.text');
+    } else {
+      body_subref_end = this;
+    }
+    if (body_subref_start == null || body_subref_end == null) {
+      //alert("Unable to identify the selected range. Please try your selection again.");
+      return;
+    }
+    var start_ref = $(body_subref_start).attr('data-ref');
+    var end_ref = $(body_subref_end).attr('data-ref')
+    if (start_ref == null || end_ref == null) {
+      //alert("Unable to read the selected range. Please try your selection again.");
+      return;
+    }
+    body_span = [body_subref_start,body_subref_end];
+    var uri = $("#body_uri").val().replace(/@.*$/,'') + "@" + start_ref;
+    // no span needed if the start and end are the same
+    if (end_ref != start_ref) {
+      uri = uri + '-' + end_ref;
+    }
+    $('#body_uri').val(uri);
+    toggle_body_highlight(true,['highlighted']);
+}
+  
+function toggle_body_highlight(a_on,a_classes) {  
+    var set = body_span
+    if (set && set != null && set.length > 0) {
+        for (var j=0; j<a_classes.length; j++) {
+            var name=a_classes[j];
+            if (a_on) {
+                $(set[0]).addClass(name);
+            } else {
+                $(set[0]).removeClass(name);
+            }
+        }
+        var sibs = $(set[0]).nextAll();
+        var done = false;
+        if (set[0] != set[1]) {
+            for (var i=0; i<sibs.length; i++) {
+                if (done) {
+                    break;
+                }
+                for (var j=0; j<a_classes.length; j++) {
+                var name=a_classes[j];
+                if (a_on) {
+                    $(sibs[i]).addClass(name);
+                } else {
+                    $(sibs[i]).removeClass(name);
+                }
+                if (sibs[i] == set[1]) {
+                    done = true;
+                }
+            }
+            }
+        } // end test on set length
+    } // end test on set definition
+}
+  
+function set_body_content(a_html) {
+    var body = $('#body_content');
+    $('#body_content').html(a_html);
+    $('#body_content .token').mousedown(start_body);
+    $('#body_content .token').mouseup(end_body);
+    var uri = $('#body_uri').val() || '';
+    var u_match = uri.match(/^.*?urn:cts:(.*)$/)
+    if (u_match != null) {
+        var parts = u_match[1].split(/:/);
+        if (parts.length == 3) {
+            var r_match = parts[2].match(/^.*?@(.*)$/);
+            var r_start;
+            var r_end;
+            if (r_match != null) {
+                var r_parts = r_match[1].split(/-/);
+                if (r_parts.length > 0) {
+                    r_start = r_parts[0];
+                    r_end = r_parts[1];
+                } else {
+                    r_start = r_parts;
+                    r_end = r_parts;
+                }
+                var span_start = $("#body_content .token.text[data-ref='" + r_start + "']");
+                var span_end = $("#body_content .token.text[data-ref='" + r_end + "']");
+                // highlight the tokens if able to find them
+                if (span_start.length > 0 && span_end.length > 0) {
+                    body_span = [span_start.get(0),span_end.get(0)];
+                }
+            }
+        }
+    }
+    toggle_body_highlight(true,['highlighted']);
+}

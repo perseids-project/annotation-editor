@@ -47,6 +47,7 @@
         <script type="text/javascript" src="jshashtable-3.0.js"></script>
         <script type="text/javascript" src="http://localhost:8080/exist/rest/db/script/alph-edit-utils.js"></script>
         <script type="text/javascript" src="alph-annot-edit.js"></script>
+        <script type="text/javascript" src="perseids-cite.js"></script>
         
         
     </head>
@@ -169,13 +170,34 @@
             <div id="annotation_body_input">
                 <div class="annotation_header">Annotation Resource</div>
                 <label>URI for Resource:</label>
-                <input type="text" name="body_uri" class="body_uri"/>
+                <input type="text" id="body_uri" name="body_uri" class="body_uri"/>
                 <div id="annotation_commentary_link">
                     
                 </div>
                 <div id="cite_annotation_selector">
+                    <p class='cite_selector_hint'>Click  to show/hide available CITE collections</p>
+                    <div id="cite_select_container" style ="display:none;">
+                        <select id='cite_selector' name="cite_selector" onchange="PerseidsCite.get_collection();">
+                            <option value="">Choose a collection...</option>
+                            <option value="http://perseids.org/collections/urn:cite:perseus:lci">Perseus Lost Content Items</option>
+                        </select>
+                    <iframe id="cite_frame"></iframe>   
+                    </div>
                 </div>
                 <div id="cts_annotation_selector">
+                    <p class="cts_selector_hint">Click  to show/hide available textual sources</p>
+                    <div id="cts_select_container" style="display:none;">   
+                        <select id="body_repo" name="body_repo"/>
+                        <select id="group_urn" name="group_urn"/>
+                        <select id="work_urn" name="work_urn"/>
+                        <select id="version_urn" name="version_urn"/>
+                        <div id="citeinfo">
+                            
+                        </div>
+                        <button id="cts_request_button">Request Resource</button>
+                        <p>Resource passage:</p>
+                        <div id="body_content"/>
+                    </div>
                 </div>
             </div>
         </form>
