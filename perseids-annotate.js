@@ -10,8 +10,10 @@ var repos = {};
 var body_urn_parts = {};
 var body_subref_start;
 var body_subref_end;
+var unsaved = false;
   
 var current_annotation_target = null;
+var s_createAnnotationURL = null;
 var s_getAnnotationURL = null;
 var s_putAnnotationURL = null;
 var s_passageTransform = null;
@@ -36,8 +38,8 @@ function Init(e_event,a_load) {
     s_param["app"] = 'editor';
     
     // get parameters from html metadata of form
-    //  <meta name="alpheios-param-<name>" content="<value>"/>
-    var prefix = "alpheios-param-";
+    //  <meta name="perseids-param-<name>" content="<value>"/>
+    var prefix = "perseids-param-";
     $("meta[name^='" + prefix + "']", document).each(
     function ()
     {
@@ -58,9 +60,12 @@ function Init(e_event,a_load) {
     s_param["numParams"] = numParams;
     // get URLs from header
     s_getAnnotationURL =
-        $("meta[name='alpheios-getAnnotationURL']", document).attr("content");
+        $("meta[name='perseids-getAnnotationURL']", document).attr("content");
     s_putAnnotationURL =
-        $("meta[name='alpheios-putAnnotationURL']", document).attr("content");
+        $("meta[name='perseids-putAnnotationURL']", document).attr("content");
+    s_createAnnotationURL = 
+        $("meta[name='perseids-createAnnotationURL']", document).attr("content");
+
     
     // get the configuration information
     // json object is expected to contain:
@@ -69,7 +74,7 @@ function Init(e_event,a_load) {
     //  passage transform
     $.ajax({
         dataType: "json",
-        url: $("meta[name='alpheios-getInfoURL']",document).attr("content").replace(/DOC_REPLACE/,s_param['doc']),
+        url: $("meta[name='perseids-getInfoURL']",document).attr("content").replace(/DOC_REPLACE/,s_param['doc']),
         async: false
     }).done( 
         function(data) {
@@ -120,6 +125,18 @@ function Init(e_event,a_load) {
     $("#cts_request_button").click( function() { return merge_cite_info(); } );
     $(".cite_selector_hint").click( function() { $("#cite_select_container").toggle();});
 
+
+    // set various values in html
+    var exitForm = $("form[name='navigation-exit']", document);
+    var exitURL = $("meta[name='perseids-exitURL']", document);
+    if (exitURL.length > 0) {
+        var exitAction = exitURL.attr("content").replace(/DOC_REPLACE/,s_param["doc"]);
+        var exitLabel = $("meta[name='perseids-exitLabel']", document);
+        exitForm.attr("action", exitAction);
+        $("input[name='doc']", exitForm).attr("value", s_param["doc"]);
+        $("button", exitForm).text(exitLabel.attr("content"));
+    }
+    
     InitAnnotation();
   
 }
@@ -131,7 +148,7 @@ function InitAnnotation() {
         params["doc"] = s_param["doc"];
         params["app"] = s_param["app"];
         params["s"] = s_param["s"];
-    var annotation = AlphEdit.getContents(s_getAnnotationURL, params);
+    var annotation = getContents(s_getAnnotationURL, params);
     if (annotation ==  null) {
         return;
     }
@@ -292,7 +309,10 @@ function end_target() {
     if (end_ref != start_ref) {
       uri = uri + '-' + end_ref;
     }
-    current_target.value = uri;
+    if (current_target.value != uri) {
+        current_target.value = uri;
+        set_state(true);
+    }
     all_targets.put(current_target.name,[subref_start,subref_end]);
     toggle_highlight(true,['highlighted']);
     toggle_highlight(true,['selected'],[current_target.name]);
@@ -914,4 +934,207 @@ function set_body_content(a_html) {
         }
     }
     toggle_body_highlight(true,['highlighted']);
+}
+
+function save_new() {
+    // should call createAnnotationURL
+    // get uri from response
+    // update s_param[s]
+    // call InitSentence
+}
+
+function set_state(a_unsaved) {
+    unsaved = true;
+    adjust_buttons();
+}
+
+function unsaved_changes() {
+    return unsaved;
+}
+
+function adjust_buttons() {
+    if (unsaved_changes()) {
+        $("#save_button").prop("disabled",false);
+    } else {
+        $("#save_button").prop("disabled",false);
+    }
+}
+function ClickOnSave(a_evt)
+{
+    SaveContents(null);
+};
+
+// save contents to database
+function SaveContents(a_confirm)
+{
+    // if need to confirm
+    if (a_confirm)
+    {
+        // do nothing if no unsaved changes
+        if (! unsaved)
+            return;
+
+        // do nothing if action not confirmed
+        if (!confirm(a_confirm))
+            return;
+    }
+
+    // transform sentence
+    // TODO
+
+    putContents(xml.documentElement,
+                         s_putSentenceURL,
+                         s_param["doc"],
+                         s_param["s"]);
+
+    // remember where we last saved and fix buttons
+    set_state(false);
+    adjust_buttons();
+    return true;
+};
+
+/**
+ * Test that a supplied url has the same origin as the document
+ * @param {String} a_url the url to test
+ * @return true if the same origin, otherwise false 
+ */
+function sameOrigin(a_url) {
+    // test that a given url is a same-origin URL
+    // url could be relative or scheme relative or absolute
+    var host = document.location.host; // host + port
+    var protocol = document.location.protocol;
+    var sr_origin = '//' + host;
+    var origin = protocol + sr_origin;
+    // Allow absolute or scheme relative URLs to same origin
+    return (a_url == origin || a_url.slice(0, origin.length + 1) == origin + '/') ||
+        (a_url == sr_origin || a_url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+        // or any other URL that isn't scheme relative or absolute i.e relative.
+        !(/^(\/\/|http:|https:).*/.test(a_url));
+}
+
+/**
+ * Put contents of annotation 
+ * @param {Element} a_xml sentence to put
+ * @param {String} a_url URL to send sentence to
+ * @param {String} a_doc document name
+ * @param {String} a_sentid sentence id
+ */
+function putContents(a_xml, a_url, a_doc, a_sentid)
+{
+    // clear any old notice out
+    $("#perseids-put-notice").html('');
+    // if nothing has changed, do nothing
+    // (shouldn't ever happen because save button should be disabled)
+    if (! unsaved_changes()) {
+        alert("No Changes to Save!")   
+        return;
+    }
+    // send synchronous request to save
+    var req = new XMLHttpRequest();
+    var builtUrl = a_url.replace('DOC_REPLACE',a_doc);
+    builtUrl = builtUrl.replace('S_REPLACE',a_sentid);
+    req.open("POST", builtUrl, false);
+    // check to see if we need to send a session token
+    var sessionToken = $("meta[name='perseids-sessionTokenName']").attr("content");
+    var sessionHeader = $("meta[name='perseids-sessionHeaderName']").attr("content");
+    // Only send the token to same-origin, relative URLs only.
+    if (sessionToken && sessionHeader && sameOrigin(builtUrl)) {
+        var csrftoken = getCookie(sessionToken);
+        // Only if we have the cookie
+        if (csrftoken) {
+            req.setRequestHeader(sessionHeader, csrftoken);
+        }
+    }
+    req.setRequestHeader("Content-Type", "application/xml");
+    req.send(XMLSerializer().serializeToString(a_xml));
+    if ((req.status != 200) || req.responseXML == null || $(req.responseXML.documentElement).is("error"))
+    {
+        var msg = "ERROR!! CHANGES NOT SAVED!<br/>"
+        if (req.responseXML != null &&  $(req.responseXML.documentElement).is("error"))
+        { 
+            msg = msg + $(req.responseXML.documentElement).text();
+        } else {
+            msg = msg + "Error saving sentence " + a_sentid + " in " + a_doc;
+        }
+        msg = msg + ": " + (req.responseText ? req.responseText : req.statusText);
+        $("#perseids-put-notice").addClass("error").text(msg);
+        throw(msg);
+    } else {
+        $("#perseids-put-notice").removeClass("error").html("Changes Saved!");
+    }
+}
+
+/**
+ * Get contents of sentence from database
+ * @param {String} a_url URL to get sentence from
+ * @param {Object} a_params array of parameters
+ * @returns sentence
+ * @type {Document}
+ */
+function getContents(a_url, a_params)
+{
+    // get treebank sentence
+    var req = new XMLHttpRequest();
+    var builtUrl = a_url.replace('DOC_REPLACE',a_params['doc']);
+    builtUrl = builtUrl.replace('S_REPLACE',(a_params['id'] ? a_params['id'] : a_params['s']));
+    builtUrl = builtUrl.replace('APP_REPLACE',a_params['app']);
+    req.open("GET", builtUrl, false);
+    
+    req.send(null);
+    var root = null;
+    if (req.status == 200) {
+        root = $(req.responseXML.documentElement);
+    }
+    if ((req.status != 200) || root == null || root.is("error"))
+    {
+        var msg = root.is("error") ? root.text() :
+                                     "Error getting sentence (" +
+                                       urlParams +
+                                       "): " +
+                                       (req.responseText ? req.responseText :
+                                                           req.statusText);
+        alert(msg);
+        throw(msg);
+    }
+
+    return req.responseXML;
+}
+
+
+/**
+ * Get a cookie with the supplied name
+ * @param {String} name the cookie name
+ * @return the value of the cookie or null if not found
+ */
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = $.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+/**
+ * Event handler for exit form
+ * @param {Element} a_form the form
+ */
+function SubmitExit(a_form)
+{
+    // give user chance to save changes
+    SaveContents("Save changes before continuing?");
+    return true;
+};
+
+function build_annotation() {
+    var root = ""
+    var annotation = (new DOMParser()).parseFromString(annotation,"text/xml");
+
 }

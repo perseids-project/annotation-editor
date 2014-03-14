@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
-        <title>Alpheios:Annotate Passage</title>
+        <title>Perseids:Annotate Passage</title>
         
        <!-- Parameters controlling behavior of the editor
-         All names are prefixed in the <meta> tags with "alpheios-param-".
+         All names are prefixed in the <meta> tags with "perseids-param-".
          All can be overridden by parameters supplied at invocation time to
-         the url, using the names below without the "alpheios-param-" prefix.
+         the url, using the names below without the "perseids-param-" prefix.
             app: [editor|viewer]
               Whether we're editing or just viewing the alignment.
               If set to "viewer", other parameters controlling editing
               behavior will be ignored.
      
         -->
-        <meta name="alpheios-param-app" content="editor"/>
-        <meta name="alpheios-param-numSentences" content="1"/>
+        <meta name="perseids-param-app" content="editor"/>
+        <meta name="perseids-param-numSentences" content="1"/>
      
         
         <!-- a session cookie and HTTP header name can be supplied for session sharing with a server on the same domain
-         the content of the alpheios-sessionTokenName attribute should be the name of the cookie set by the server
-         the content of the alpheios-sessionHeaderName attribute should be the name of the HTTP header to send the token back to the server in -->
-        <meta name="alpheios-sessionTokenName" content="csrftoken"/>
-        <meta name="alpheios-sessionHeaderName" content="X-CSRF-Token"/>
+         the content of the perseids-sessionTokenName attribute should be the name of the cookie set by the server
+         the content of the perseids-sessionHeaderName attribute should be the name of the HTTP header to send the token back to the server in -->
+        <meta name="perseids-sessionTokenName" content="csrftoken"/>
+        <meta name="perseids-sessionHeaderName" content="X-CSRF-Token"/>
         
         <!-- URLs to get and put a single annotation -->
         <!-- The urls should contain the following placeholders which will be filled by 
@@ -29,33 +29,33 @@
          DOC_REPLACE : gets replaced with the document identifier
          S_REPLACE : gets replaced with the sentence identifier
         -->
-        <meta name="alpheios-getAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DS_REPLACE"/>
-        <meta name="alpheios-putAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DS_REPLACE"/>
-        <meta name="alpheios-getInfoURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/info/json"/>
+        <meta name="perseids-createAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/append"/>
+        <meta name="perseids-getAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DS_REPLACE"/>
+        <meta name="perseids-putAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DS_REPLACE"/>
+        <meta name="perseids-getInfoURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/info/json"/>
         
         <!-- URL to call when exiting and label to use on exit button -->
         <!-- The url should contain the following placeholders which will be filled by 
          the application:
          DOC_REPLACE : gets replaced with the document identifier
         -->
-        <meta name="alpheios-exitURL" content="http://sosol.perseids.org/sosol/dmm_api/item/AlignmentCite/DOC_REPLACE/return/edit"/>
-        <meta name="alpheios-exitLabel" content="Sentence&#160;list"/>
+        <meta name="perseids-exitURL" content="http://sosol.perseids.org/sosol/dmm_api/item/AlignmentCite/DOC_REPLACE/return/edit"/>
+        <meta name="perseids-exitLabel" content="Annotations List"/>
         
         
-        <link rel="stylesheet" type="text/css" href="annotate.css"/>
+        <link rel="stylesheet" type="text/css" href="perseids-annotate.css"/>
         <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
         <script type="text/javascript" src="jshashtable-3.0.js"></script>
-        <script type="text/javascript" src="http://localhost:8080/exist/rest/db/script/alph-edit-utils.js"></script>
-        <script type="text/javascript" src="alph-annot-edit.js"></script>
+        <script type="text/javascript" src="perseids-annotate.js"></script>
         <script type="text/javascript" src="perseids-cite.js"></script>
         
         
     </head>
     <body onload="Init(event,true)">
         
-        <div id="align-title"><span class="alpheios-document-id"/></div>    
+        <div id="align-title"><span class="perseids-document-id"/></div>    
         
-        <div class="alpheios-ignore">
+        <div class="perseids-ignore">
           <div id="alph-page-header">
             <img src="http://sosol.perseids.org/sosol/images/perseids_notag_150.png" alt="Perseids Logo"/>
           </div>
@@ -64,7 +64,7 @@
        <table style="border:none; padding:0; width:100%">
         <tr>
             <td>
-                <div class="controls alpheios-ignore" id="edit-controls">
+                <div class="controls perseids-ignore" id="edit-controls">
                     <table style="border:none; padding:0">
                         <tr>
                             <td>
@@ -116,11 +116,9 @@
         </tr>
         <tr>
             <td>
-                    <!-- TODO hide if not allow save -->
-                <button id="save-button" onclick="ClickOnSave(event)">Save sentence</button>
-                <button id="undo-button" onclick="ClickOnUndo(event)">&lt; Undo</button>
-                <button id="redo-button" disabled="yes" onclick="ClickOnRedo(event)">Redo &gt;</button>
-            
+                <button id="save-button" onclick="ClickOnSave(event)">Save annotation</button>
+                <button id="new-button" onclick="ClickOnNew(event)">New annotation</button>
+                
                 <form method="post" action="../xq/align-export.xq" id="exportform">
                       <button id="export-xml-button"
                           onclick="ClickOnExport(event)">Export XML</button>
@@ -136,10 +134,7 @@
                </td>
            </tr>
        </table>
-    
-    
-        <div id="alpheios-trigger-hint" class="alpheios-ignore alpheios-trigger-hint alpheios-hint"/>
-        <div id="alpheios-put-notice"/>
+        <div id="perseids-put-notice"/>
         <form id="update" action="POST" onsubmit="return check_input();">
             <input type="hidden" name="valid_targets"/>
             <ul class="hints">
