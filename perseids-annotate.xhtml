@@ -27,12 +27,13 @@
         <!-- The urls should contain the following placeholders which will be filled by 
          the application:
          DOC_REPLACE : gets replaced with the document identifier
-         S_REPLACE : gets replaced with the sentence identifier
+         URI_REPLACE : gets replaced with the sentence identifier
         -->
         <meta name="perseids-createAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/append"/>
-        <meta name="perseids-getAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DS_REPLACE"/>
-        <meta name="perseids-putAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DS_REPLACE"/>
+        <meta name="perseids-getAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DURI_REPLACE"/>
+        <meta name="perseids-putAnnotationURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/partial?q=uri%3DURI_REPLACE"/>
         <meta name="perseids-getInfoURL" content="http://localhost/dmm_api/item/OAC/DOC_REPLACE/info/json"/>
+        <meta name="perseids-annotationTransform" content="oa-update.xsl"/>
         
         <!-- URL to call when exiting and label to use on exit button -->
         <!-- The url should contain the following placeholders which will be filled by 
@@ -75,7 +76,7 @@
                                                 <button id="first-button" onclick="ClickOnGoTo(event)"
                                                     >&#160;</button>
                                             </td>
-                                            <td>
+                                             <td>
                                                 <button id="prev-button" onclick="ClickOnGoTo(event)"
                                                     >&#160;</button>
                                             </td>
@@ -93,8 +94,8 @@
                                             <td>
                                                 <form onsubmit="return SubmitGoTo(this)"
                                                     name="sent-navigation-goto">
-                                                    <label>&#160;&#160;Go&#160;to&#160;sentence&#160;number</label>
-                                                    <input type="text" name="s" size="5"/>
+                                                    <label>&#160;&#160;Go&#160;to&#160;annotation</label>
+                                                    <input type="text" name="s" size="100"/>
                                                 </form>
                                             </td>
                                         </tr>
@@ -102,7 +103,7 @@
                                 </div>
                             </td>
                             <td>
-                                <form onsubmit="return SubmitExit(this)" name="sent-navigation-exit">
+                                <form onsubmit="return SubmitExit(this)" name="navigation-exit">
                                     <input type="hidden" name="doc"/>
                                     <input type="hidden" name="s"/>
                                     <button type="submit">Exit</button>
@@ -118,25 +119,13 @@
             <td>
                 <button id="save-button" onclick="ClickOnSave(event)">Save annotation</button>
                 <button id="new-button" onclick="ClickOnNew(event)">New annotation</button>
-                
-                <form method="post" action="../xq/align-export.xq" id="exportform">
-                      <button id="export-xml-button"
-                          onclick="ClickOnExport(event)">Export XML</button>
-                    <input type="hidden" name="doc" value=""/>
-                    <input type="hidden" name="sentenceForExport" id="sentenceForExport"/>
-                </form>
-                <form method="post" action="../xq/align-display.xq" id="exportdisplayform">
-                      <button id="export-display-button"
-                          onclick="return ClickOnExportDisplay(event);">Export Display</button>
-                      <input type="hidden" name="doc" value=""/>
-                      <input type="hidden" name="sentenceForDisplay" id="sentenceForDisplay"/>
-                  </form>,
-               </td>
-           </tr>
+           </td>
+       </tr>
        </table>
         <div id="perseids-put-notice"/>
         <form id="update" action="POST" onsubmit="return check_input();">
-            <input type="hidden" name="valid_targets"/>
+            <input type="hidden" name="valid_targets" id="valid_targets"/>
+            <input type="hidden" name="valid_bodies" id="valid_bodies"/>
             <ul class="hints">
                 <li>Enter a URI identifying a resource that annotates your selected passage.</li>
                 <li> Or choose an annotation resource from the drop-downs and click
@@ -160,12 +149,20 @@
                     <div class="loading">Loading...</div>
                 </div>    
                 <div id="annotation_motivation_input">
+                    <select id="annotation_motivation" name="annotation_motivation"/>
                 </div>
             </div>
             <div id="annotation_body_input">
                 <div class="annotation_header">Annotation Resource</div>
-                <label>URI for Resource:</label>
-                <input type="text" id="body_uri" name="body_uri" class="body_uri"/>
+                <fieldset id="annotation_body_fields">
+                    <div class="bodies" id="bodies">
+                        <label>URI For Resource:</label>
+                    </div>
+                    <div class="add_body" style="display:none;">
+                        <label>(to select another range from within this passage)</label>
+                        <button id="add_body">Add</button>
+                    </div>
+                </fieldset>
                 <div id="annotation_commentary_link">
                     
                 </div>

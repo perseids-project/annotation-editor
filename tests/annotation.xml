@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Annotation xmlns="http://www.w3.org/ns/oa#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" rdf:about="http://data.perseus.org/annotations/sosoloacprototype/145/234/257/1/4">
+    <hasTarget xmlns="http://www.w3.org/ns/oa#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" rdf:resource="http://localhost:3000/cts/getpassage/234/urn:cts:pdlpsci:bodin.livrep.perseus-lat1:1.1"/>
+    <hasBody xmlns="http://www.w3.org/ns/oa#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" rdf:resource="http://example.org"/>
+    <motivatedBy xmlns="http://www.w3.org/ns/oa#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" rdf:resource="oa:linking_translation"/>
+    <annotatedBy xmlns="http://www.w3.org/ns/oa#">
+        <Person xmlns="http://xmlns.com/foaf/0.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" rdf:about="http://data.perseus.org/users/Bridget%20Almas"/>
+    </annotatedBy>
+    <annotatedAt xmlns="http://www.w3.org/ns/oa#">2014-03-12T10:34:48-04:00</annotatedAt>
+</Annotation>

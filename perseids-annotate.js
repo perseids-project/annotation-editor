@@ -2,8 +2,11 @@
 var subref_start;
 var subref_end;
 var target_num = 1;
-var current_target;
+var body_num = 1;
+var selected_target;
+var selected_body;
 var all_targets = new Hashtable();
+var all_bodies = new Hashtable();
 var inventories = {};
 var body_span = [];
 var repos = {};
@@ -13,15 +16,19 @@ var body_subref_end;
 var unsaved = false;
   
 var current_annotation_target = null;
+var current_annotation_body = null;
 var s_createAnnotationURL = null;
 var s_getAnnotationURL = null;
 var s_putAnnotationURL = null;
 var s_passageTransform = null;
+var s_annotationTransform = null;
 var s_config = null;
 var s_param = [];
+var annotationXml;
+
 // lang
 // doc
-// s
+// uri
 // app
 // header only parameteters
 // getInfoURL
@@ -36,6 +43,7 @@ function Init(e_event,a_load) {
     // initialize defaults
     s_param["lang"] = 'default';
     s_param["app"] = 'editor';
+    s_param["version"] = 'http://perseids.org/perseids-annotator#0.0.1'
     
     // get parameters from html metadata of form
     //  <meta name="perseids-param-<name>" content="<value>"/>
@@ -104,6 +112,23 @@ function Init(e_event,a_load) {
         }
     );
     
+    $.ajax({
+        dataType: "xml",
+        url: $("meta[name='perseids-annotationTransform']",document).attr("content"),
+        async: false
+    }).done( 
+        function(data) {
+            s_annotationTransform = new XSLTProcessor();
+            s_annotationTransform.importStylesheet(data);   
+        }
+    ).fail(
+        function(jqXHR, textStatus, errorThrown) { 
+            var msg = "Can't get Annotation XSLT";
+            alert(msg);
+            throw(msg);
+        }
+    );
+    
     
     
     // update the interface from the config
@@ -115,16 +140,24 @@ function Init(e_event,a_load) {
         }
     );
     $("#add_target").click(function() { add_target(); return false; });
+    $("#add_body").click(function() { add_body(); return false; });
     // now setup the body
     $("#body_repo").change(get_cts_inventory);
     get_repos();
     $('#group_urn').change(update_work_urns);
     $('#work_urn').change(update_version_urns);
     $('#version_urn').change(update_cite_info);
-    $(".cts_selector_hint").click( function() { $("#cts_select_container").toggle(); });
+    $(".cts_selector_hint").click( 
+        function() { 
+            $("#cts_select_container").toggle();
+            if ($("#cts_select_container:visible").length == 1) {
+                $(".add_body").show();
+            } else {
+                $(".add_body").hide();
+            }
+        });
     $("#cts_request_button").click( function() { return merge_cite_info(); } );
     $(".cite_selector_hint").click( function() { $("#cite_select_container").toggle();});
-
 
     // set various values in html
     var exitForm = $("form[name='navigation-exit']", document);
@@ -147,7 +180,7 @@ function InitAnnotation() {
     var params = [];
         params["doc"] = s_param["doc"];
         params["app"] = s_param["app"];
-        params["s"] = s_param["s"];
+        params["uri"] = s_param["uri"];
     var annotation = getContents(s_getAnnotationURL, params);
     if (annotation ==  null) {
         return;
@@ -157,10 +190,16 @@ function InitAnnotation() {
     {
         annotation = (new DOMParser()).parseFromString(annotation,"text/xml");
     }
-    // update form and check to see if we have a new target passage
+    annotationXml = annotation;
+    // update form and check to see if we have new passage(s)
     var reloadTarget = false;
+    var reloadBody = false;
     var target_passages = [];
     var target_uris = [];
+    var body_passages = [];
+    var body_uris = [];
+    
+    
     $("hasTarget",annotation).each(
         function() {
             var uri = $(this).attr("rdf:resource");
@@ -192,6 +231,39 @@ function InitAnnotation() {
 
         });
         
+     $("hasBody",annotation).each(
+        function() {
+            var uri = $(this).attr("rdf:resource");
+            body_uris.push(uri);
+            if (uri.match(/urn:cts/)) {
+                // no subreferences
+                base = uri.replace(/@.*$/,'');
+                body_passages.push(base);
+                if (base != current_annotation_body) {
+                    reloadBody = true;
+                }
+                    
+            } else {
+                body_passages.push(uri);
+                if (uri != current_annotation_body) {
+                    reloadBody = true;
+                }
+            }
+        }
+    );
+    
+    $.each(body_uris,
+        function(a_i) {
+           var index = a_i +1;
+           $("#bodies").append('<input type="text" id="body_uri' + index + '" name="body_uri' + index +'" class="body_uri" value="' + this + '"/>');
+           if (a_i > 0) {
+               $("#bodies").append('<button id="remove_body_uri' + index + '" class="remove_body_uri">Remove</button>');           
+           }
+
+        });
+    $('.target_uri').keypress(function() { set_state(true);});
+    $('.body_uri').keypress(function() { set_state(true);});
+   
     // reload if we need to, otherwise just reset highlighting
     if (reloadTarget) {
         // for now only support a single base passage
@@ -199,16 +271,25 @@ function InitAnnotation() {
         current_annotation_target = target_passages[0];
         get_target_passage();
     }
-    $('#target_uri1').click(select_target_input);
+     // reload if we need to, otherwise just reset highlighting
+    if (reloadBody) {
+        // for now only support a single base passage
+        // TODO support multiple different base passages
+        current_annotation_body = body_passages[0];
+        get_body_passage();
+    }
+    $('.target_uri').click(select_target_input);
     $('.remove_target_uri').click(function() {remove_target_input();}); 
     $('#target_content .token').mousedown(start_target);
     $('#target_content .token').mouseup(end_target);
-    current_target = $('#target_uri1').get(0);
+    selected_target = $('#target_uri1').get(0);
     
     //body
+    $('.body_uri').click(select_body_input);
+    $('.remove_body_uri').click(function() {remove_body_input();}); 
     $('#body_content .token').mousedown(start_body);
     $('#body_content .token').mouseup(end_body);
-
+    selected_body = $('#body_uri1').get(0);
 }
 
 function get_target_passage() {
@@ -230,16 +311,16 @@ function get_target_passage() {
             var content = s_passageTransform.transformToDocument(a_data);
             var div = $("div",content);
             if (div.length > 0) {
-                set_target_content(div.get(0).innerHTML);
+                set_content('target',div.get(0).innerHTML);
             } else {
-                set_target_content('<div class="error">Unable to load the requested text.</div>')
+                set_content('target','<div class="error">Unable to load the requested text.</div>')
             }
           } else {
-          set_target_content(a_data);
+          set_content('target',a_data);
         }
       }).fail(
         function(jqXHR, textStatus, errorThrown) {
-          $('target_content').innerHTML = '<div class="error">Unable to load the requested text.</div>';
+          set_content('target', '<div class="error">Unable to load the requested text.</div>');
         }
       ); 
   }
@@ -250,42 +331,85 @@ function add_target() {
     $('#targets').append('<br/>' +
           '<input class="target_uri" type="text" id="' + input_name + '" name="' + input_name + '"/>' + 
           '<button class="remove_target_uri" id="remove_' + input_name + '">Remove</button>');
-    current_target = $("#input_name");
-    $("#"+input_name).click(select_target_input);
+    selected_target = $("#" + input_name);
+    $("#"+input_name).click(select_target_input).change(function() { set_state(true);});
+    $("#"+input_name).keypress(function() { set_state(true);});
     $('#remove_' + input_name).click(function() { return remove_target_input(this);});
     $('#'+input_name).click();
     return false;
-  }
+}
   
+function add_body() {
+    var next_body = ++body_num;
+    input_name = 'body_uri' + next_body;
+    $('#bodies').append('<br/>' +
+          '<input class="body_uri" type="text" id="' + input_name + '" name="' + input_name + '"/>' + 
+          '<button class="remove_body_uri" id="remove_' + input_name + '">Remove</button>');
+    selected_body = $("#" + input_name);
+    $("#"+input_name).click(select_body_input);
+    $("#"+input_name).keypress(function() { set_state(true);});
+    $('#remove_' + input_name).click(function() { return remove_body_input(this);});
+    $('#'+input_name).click();
+    return false;
+}
+
 function remove_target_input(to_remove) {
+    --target_num;
     var target_input = $(to_remove).prev();
     var target_name = target_input.attr('name');
     $(target_input).remove();
     $(to_remove).remove();
-    toggle_highlight(false,['selected','highlighted'],[target_name]);
+    toggle_highlight(false,['selected','highlighted'],[target_name],'target');
     all_targets.remove(target_name);
+    set_state(true);
     return false;
 }
+
+function remove_body_input(to_remove) {
+    --body_num;
+    var body_input = $(to_remove).prev();
+    var body_name = body_input.attr('name');
+    $(body_input).remove();
+    $(to_remove).remove();
+    toggle_highlight(false,['selected','highlighted'],[body_name],'body');
+    all_bodies.remove(body_name);
+    set_state(true);
+    return false;
+}
+
   
 function select_target_input() {
-    if (current_target == this) {
+    if (selected_target == this) {
         return;
     }
-    last_target = current_target;
-    current_target = this;
+    var last_target = selected_target;
+    selected_target = this;
     if (last_target) {
-      toggle_highlight(false,['selected'],[last_target.name]);
+      toggle_highlight(false,['selected'],[last_target.name],'target');
     }
-    toggle_highlight(true,['selected'],[current_target.name])
+    toggle_highlight(true,['selected'],[selected_target.name],'target')
 }
-  
+
+function select_body_input() {
+    if (selected_body == this) {
+        return;
+    }
+    var last_body = selected_body;
+    selected_body = this;
+    if (last_body) {
+      toggle_highlight(false,['selected'],[last_body.name],'body');
+    }
+    toggle_highlight(true,['selected'],[selected_body.name],'body')
+}
+
+
 function start_target() {
     if ($(this).hasClass('punc')) {
         subref_start = $(this).nextAll('.text');
     } else {
         subref_start = this;
     }  
-    toggle_highlight(false,['highlighted','selected']);
+    toggle_highlight(false,['highlighted','selected'],null,'target');
 }
   
 function end_target() {
@@ -309,29 +433,29 @@ function end_target() {
     if (end_ref != start_ref) {
       uri = uri + '-' + end_ref;
     }
-    if (current_target.value != uri) {
-        current_target.value = uri;
+    if (selected_target.value != uri) {
+        selected_target.value = uri;
         set_state(true);
     }
-    all_targets.put(current_target.name,[subref_start,subref_end]);
-    toggle_highlight(true,['highlighted']);
-    toggle_highlight(true,['selected'],[current_target.name]);
+    all_targets.put(selected_target.name,[subref_start,subref_end]);
+    toggle_highlight(true,['highlighted'],null,'target');
+    toggle_highlight(true,['selected'],[selected_target.name],'target');
 }
   
   
-function toggle_highlight(a_on,a_classes,a_targets) {
-    var targets;  
-    if (a_targets == null) {
-      targets = all_targets.keys();
+function toggle_highlight(a_on,a_classes,a_elem,a_type) {
+    var elems;  
+    if (a_elem == null) {
+      elems = (a_type == 'target' ? all_targets.keys() : all_bodies.keys());
     } else { 
-      targets = a_targets;
+      elems = a_elem;
     }
-    for (var j=0; j<targets.length; j++) {
-        var name= targets[j];
+    for (var j=0; j<elems.length; j++) {
+        var name= elems[j];
         if (!name) {
             continue;
         }
-        var set = all_targets.get(name);
+        var set = (a_type == 'target' ? all_targets.get(name): all_bodies.get(name));
         if (set && set != null) {
             for (var k=0; k<a_classes.length; k++) {
               if (a_on) {
@@ -363,16 +487,20 @@ function toggle_highlight(a_on,a_classes,a_targets) {
       } // end iterator on each target
 }
   
-function set_target_content(a_html) {
-    var target = $('target_content');
-    $('#target_content').html(a_html);
-    $('#target_content .token').mousedown(start_target);
-    $('#target_content .token').mouseup(end_target);
-    reset_current_target();
+function set_content(a_type,a_html) {
+    $('#' + a_type + '_content').html(a_html);
+    if (a_type == 'target') {
+        $('#' + a_type + '_content .token').mousedown(start_target);
+        $('#' + a_type + '_content .token').mouseup(end_target);
+    } else {
+        $('#' + a_type + '_content .token').mousedown(start_body);
+        $('#' + a_type + '_content .token').mouseup(end_body);
+    }
+    reset_content(a_type);
 }
   
-function reset_current_target() {
-      $('.target_uri').each(
+function reset_content(a_type) {
+      $('.' + a_type + '_uri').each(
       function() {
         var uri = $(this).val();
         var u_match = uri.match(/^.*?urn:cts:(.*)$/)
@@ -392,41 +520,44 @@ function reset_current_target() {
                 r_end = r_parts;
               }
               
-              //prototype is unreliable here - switch to $
-              var span_start = $("#target_content .token.text[data-ref='" + r_start + "']");
-              var span_end = $("#target_content .token.text[data-ref='" + r_end + "']");
+              var span_start = $("#" + a_type + "_content .token.text[data-ref='" + r_start + "']");
+              var span_end = $("#" + a_type + "_content .token.text[data-ref='" + r_end + "']");
               // highlight the tokens if able to find them
               if (span_start.length > 0 && span_end.length > 0) {
-                all_targets.put(this.name,[span_start.get(0),span_end.get(0)]);
+                if (a_type == 'target') {
+                    all_targets.put(this.name,[span_start.get(0),span_end.get(0)]);
+                } else {
+                    all_bodies.put(this.name,[span_start.get(0),span_end.get(0)]);
+                }
               }
             }
           }
         }
       }
     );
-    toggle_highlight(true,['highlighted','selected']);
+    toggle_highlight(true,['highlighted','selected'],null,a_type);
 }
   
-function merge_targets() {
-    var all_targets = $('.target_uri');
-    var valid_targets = [];
-    var invalid_targets = [];
-    all_targets.each(
+function merge_input(a_type) {
+    var all = $('.' + a_type + '_uri');
+    var valid = [];
+    var invalid = [];
+    all.each(
       function() { 
         if( $(this).val().match(/^https?:/) != null ) {
-          valid_targets.push(elem);
+          valid.push(this);
         }
       }
     );
-    all_targets.each(
+    all.each(
       function() { 
         if($(this).val().match(/^https?:/) == null) {
-          invalid_targets.push(elem);
+          invalid.push(this);
         }
       }
     );
-    if (invalid_targets.length == 0) {
-      return valid_targets;
+    if (invalid.length == 0) {
+      return valid;
     } else {
       // returning null indicates there were invalid targets
       return null;
@@ -435,7 +566,7 @@ function merge_targets() {
 }
   
 function submit_commentary_create() {
-    var valid_targets = merge_targets();
+    var valid_targets = merge_input('target');
     var messages = [];
     if (null == valid_targets) {
        messages.push("You have one more more invalid annotation target uris specified.");
@@ -459,16 +590,17 @@ function submit_commentary_create() {
   
 function check_input() {
     var messages = [];
-    var valid_targets = merge_targets();
+    var valid_targets = merge_input('target');
     if (null == valid_targets) {
        messages.push("You have one more more invalid annotation target uris specified.");
     } else if ( valid_targets.length == 0) {
       messages.push("You need to specify at least one valid uri as an annotation target.");
     }
-    var valid_body = ( $('body_uri').val().match(/^https?:/) != null);
-    
-    if (! valid_body) {
-      messages.push("You need to specify a valid uri as the annotation body.");
+    var valid_bodies = merge_input('body');    
+    if (null == valid_bodies) {
+      messages.push("You need to specify one or more valid uris as the annotation body.");
+    } else if ( valid_bodies.length == 0) {
+      messages.push("You need to specify at least one valid uri as an annotation body.");
     }
     // TODO we need also to check that the target rnages don't overlap
     if (messages.length > 0) {
@@ -476,11 +608,18 @@ function check_input() {
       return false;
     } else {
       if (Array.isArray(valid_targets)) {
-        $('valid_targets').value = $(valid_targets).collect(function(elem) { return elem.name; }).join(',');
+        $('#valid_targets').val($.map($(valid_targets),function(elem,i) { return $(elem).val(); }).join(' '));
       }
       else
       {
-        $('valid_targets').value = valid_targets.name;
+        $('#valid_targets').val($(valid_targets).val());
+      }
+      if (Array.isArray(valid_bodies)) {
+        $('#valid_bodies').val($.map($(valid_bodies),function(elem,i) { return $(elem).val(); }).join(' '));
+      }
+      else
+      {
+        $('#valid_bodies').val($(valid_bodies).val());
       }
       return true;
     }
@@ -643,7 +782,7 @@ function update_version_urns() {
   
 function update_body_urn_parts() {
     // check to see if the pre-populated URI is from one of the registered repositories
-    var body_uri = $('#body_uri').val() || '';
+    var body_uri = $(selected_body).val() || '';
     urn_match = body_uri.match(/^(.*?)\/(urn:cts:.*)$/)    
     if (urn_match != null) {
       urispace = urn_match[1];
@@ -743,14 +882,14 @@ function merge_cite_info() {
           urispace = urispace + '/' + props.item_id
     }
     var uri =  urispace + "/" + $('#version_urn option:selected').val() + ':' + start.join('.');
-    if (end.length > 0) {
+    if (end.length > 0 && end.join('.') != start.join('.')) {
         uri = uri + '-' + end.join('.');
     }
     var uri_match = new RegExp("^" + uri + '@');
-    var old_uri_value = $('#body_uri').val();
+    var old_uri_value = $(selected_body).val();
     // hack to prevent replacement of uri during board review
     if (!old_uri_value || (old_uri_value.match(uri_match) == null && s_param['app'] == 'editor')) {
-        $('#body_uri').val(uri);
+        $(selected_body).val(uri);
     }
     get_body_passage();
     } catch (a_e) {
@@ -774,7 +913,6 @@ function body_props_from_form() {
 }
   
 function get_body_passage() {
-    $('#body_content').html('<div class="loading">Loading...</div>');
     var passage =  $.grep(
         $.map($('input.cite_from'),
         function(e,i) { 
@@ -790,48 +928,55 @@ function get_body_passage() {
     }
     var inventory = $('#body_repo option:selected').val();
     var textgroup = $('#group_urn option:selected').val();
-    var work = $('#work_urn option:selected').val().replace(textgroup+".",''); 
-    var version = $('#version_urn option:selected').val();
-    var lookup_ver = version.match(/^.*?([^\.]+)$/)[1];
-    var props = 
-      inventories[inventory][textgroup].works[work].editions[lookup_ver] != null ? 
-      inventories[inventory][textgroup].works[work].editions[lookup_ver] : 
-      inventories[inventory][textgroup].works[work].translations[lookup_ver] != null ? 
-      inventories[inventory][textgroup].works[work].translations[lookup_ver] : {};
-    var lang = props.lang || 'default';
-    var request_inventory = props.item_id || inventory; 
+    var work = $('#work_urn option:selected').val();
+    if (work) {
+        work = work.replace(textgroup+".",''); 
 
-    var passage_url = s_config['cts_services']['passage'] + request_inventory  + "/" + version + ":" + passage;
-    
-    var tokenizer_cfg = s_config.tokenizer;
-    var tokenizer_url;
-    if (tokenizer_cfg[lang]) {
-      tokenizer_url = tokenizer_cfg[lang].request_url;
-    } else {
-      tokenizer_url = tokenizer_cfg['default'].request_url;
-    } 
-    var request_url = tokenizer_url + encodeURIComponent(passage_url);
-
-    $.get(request_url).done(
-      function(a_data) {
-        if (s_passageTransform != null) {
-            var content = s_passageTransform.transformToDocument(a_data);
-            var div = $("div",content);
-            if (div.length > 0) {
-                set_body_content(div.get(0).innerHTML);
+        var version = $('#version_urn option:selected').val();
+        if (version) {
+            $('#body_content').html('<div class="loading">Loading...</div>');
+            var lookup_ver = version.match(/^.*?([^\.]+)$/)[1];
+            var props = 
+              inventories[inventory][textgroup].works[work].editions[lookup_ver] != null ? 
+              inventories[inventory][textgroup].works[work].editions[lookup_ver] : 
+              inventories[inventory][textgroup].works[work].translations[lookup_ver] != null ? 
+              inventories[inventory][textgroup].works[work].translations[lookup_ver] : {};
+            var lang = props.lang || 'default';
+            var request_inventory = props.item_id || inventory; 
+        
+            var passage_url = s_config['cts_services']['passage'] + request_inventory  + "/" + version + ":" + passage;
+            
+            var tokenizer_cfg = s_config.tokenizer;
+            var tokenizer_url;
+            if (tokenizer_cfg[lang]) {
+              tokenizer_url = tokenizer_cfg[lang].request_url;
             } else {
-                set_body_content('<div class="error">Unable to transform the requested text.</div>')
-            }
-          } else {
-          set_body_content(a_data);
-        }
-      }).fail(
-        function() {
-          $('target_content').innerHTML = '<div class="error">Unable to load the requested text.</div>';
-        }
-      );  
+              tokenizer_url = tokenizer_cfg['default'].request_url;
+            } 
+            var request_url = tokenizer_url + encodeURIComponent(passage_url);
+        
+            $.get(request_url).done(
+              function(a_data) {
+                if (s_passageTransform != null) {
+                    var content = s_passageTransform.transformToDocument(a_data);
+                    var div = $("div",content);
+                    if (div.length > 0) {
+                        set_content('body',div.get(0).innerHTML);
+                        $(".add_body").show();
+                    } else {
+                        set_content('body','<div class="error">Unable to transform the requested text.</div>')
+                    }
+                  } else {
+                  set_body_content(a_data);
+                }
+              }).fail(
+                function() {
+                  set_content('body','<div class="error">Unable to load the requested text.</div>');
+                }
+              );
+         }
+    }
 }
-  
   
 function start_body() {
     if ($(this).hasClass('punc')) {
@@ -839,7 +984,7 @@ function start_body() {
     } else {
         body_subref_start = this;
     }  
-    toggle_body_highlight(false,['highlighted','selected']);
+    toggle_highlight(false,['highlighted','selected'],null,'body');
 }
   
 function end_body() { 
@@ -859,83 +1004,21 @@ function end_body() {
       return;
     }
     body_span = [body_subref_start,body_subref_end];
-    var uri = $("#body_uri").val().replace(/@.*$/,'') + "@" + start_ref;
+   
+    var uri = $("#body_uri1").val().replace(/@.*$/,'') + "@" + start_ref;
     // no span needed if the start and end are the same
     if (end_ref != start_ref) {
       uri = uri + '-' + end_ref;
     }
-    $('#body_uri').val(uri);
-    toggle_body_highlight(true,['highlighted']);
-}
-  
-function toggle_body_highlight(a_on,a_classes) {  
-    var set = body_span
-    if (set && set != null && set.length > 0) {
-        for (var j=0; j<a_classes.length; j++) {
-            var name=a_classes[j];
-            if (a_on) {
-                $(set[0]).addClass(name);
-            } else {
-                $(set[0]).removeClass(name);
-            }
-        }
-        var sibs = $(set[0]).nextAll();
-        var done = false;
-        if (set[0] != set[1]) {
-            for (var i=0; i<sibs.length; i++) {
-                if (done) {
-                    break;
-                }
-                for (var j=0; j<a_classes.length; j++) {
-                var name=a_classes[j];
-                if (a_on) {
-                    $(sibs[i]).addClass(name);
-                } else {
-                    $(sibs[i]).removeClass(name);
-                }
-                if (sibs[i] == set[1]) {
-                    done = true;
-                }
-            }
-            }
-        } // end test on set length
-    } // end test on set definition
-}
-  
-function set_body_content(a_html) {
-    var body = $('#body_content');
-    $('#body_content').html(a_html);
-    $('#body_content .token').mousedown(start_body);
-    $('#body_content .token').mouseup(end_body);
-    var uri = $('#body_uri').val() || '';
-    var u_match = uri.match(/^.*?urn:cts:(.*)$/)
-    if (u_match != null) {
-        var parts = u_match[1].split(/:/);
-        if (parts.length == 3) {
-            var r_match = parts[2].match(/^.*?@(.*)$/);
-            var r_start;
-            var r_end;
-            if (r_match != null) {
-                var r_parts = r_match[1].split(/-/);
-                if (r_parts.length > 0) {
-                    r_start = r_parts[0];
-                    r_end = r_parts[1];
-                } else {
-                    r_start = r_parts;
-                    r_end = r_parts;
-                }
-                var span_start = $("#body_content .token.text[data-ref='" + r_start + "']");
-                var span_end = $("#body_content .token.text[data-ref='" + r_end + "']");
-                // highlight the tokens if able to find them
-                if (span_start.length > 0 && span_end.length > 0) {
-                    body_span = [span_start.get(0),span_end.get(0)];
-                }
-            }
-        }
+    if (selected_body.value != uri) {
+        selected_body.value = uri;
+        set_state(true);
     }
-    toggle_body_highlight(true,['highlighted']);
+    all_bodies.put(selected_body.name,[body_subref_start,body_subref_end]);
+    toggle_highlight(true,['highlighted'],null,'body');
+    toggle_highlight(true,['selected'],[selected_body.name],'body');
 }
-
+  
 function save_new() {
     // should call createAnnotationURL
     // get uri from response
@@ -961,7 +1044,9 @@ function adjust_buttons() {
 }
 function ClickOnSave(a_evt)
 {
-    SaveContents(null);
+    if (check_input()) {
+        SaveContents(null);
+    }
 };
 
 // save contents to database
@@ -980,12 +1065,18 @@ function SaveContents(a_confirm)
     }
 
     // transform sentence
-    // TODO
-
+    s_annotationTransform.setParameter(null, "e_targets", $("#valid_targets").val());
+    s_annotationTransform.setParameter(null, "e_bodies", $("#valid_bodies").val());
+    s_annotationTransform.setParameter(null, "e_motivation", $("#annotation_motivation option:selected").val());
+    s_annotationTransform.setParameter(null, "e_agentUri", s_param["version"]);
+    
+    
+       
+    var xml = s_annotationTransform.transformToDocument(annotationXml);
     putContents(xml.documentElement,
-                         s_putSentenceURL,
+                         s_putAnnotationURL,
                          s_param["doc"],
-                         s_param["s"]);
+                         s_param["uri"]);
 
     // remember where we last saved and fix buttons
     set_state(false);
@@ -1032,7 +1123,7 @@ function putContents(a_xml, a_url, a_doc, a_sentid)
     // send synchronous request to save
     var req = new XMLHttpRequest();
     var builtUrl = a_url.replace('DOC_REPLACE',a_doc);
-    builtUrl = builtUrl.replace('S_REPLACE',a_sentid);
+    builtUrl = builtUrl.replace('URI_REPLACE',a_sentid);
     req.open("POST", builtUrl, false);
     // check to see if we need to send a session token
     var sessionToken = $("meta[name='perseids-sessionTokenName']").attr("content");
@@ -1046,7 +1137,7 @@ function putContents(a_xml, a_url, a_doc, a_sentid)
         }
     }
     req.setRequestHeader("Content-Type", "application/xml");
-    req.send(XMLSerializer().serializeToString(a_xml));
+    req.send(new XMLSerializer().serializeToString(a_xml));
     if ((req.status != 200) || req.responseXML == null || $(req.responseXML.documentElement).is("error"))
     {
         var msg = "ERROR!! CHANGES NOT SAVED!<br/>"
@@ -1076,7 +1167,7 @@ function getContents(a_url, a_params)
     // get treebank sentence
     var req = new XMLHttpRequest();
     var builtUrl = a_url.replace('DOC_REPLACE',a_params['doc']);
-    builtUrl = builtUrl.replace('S_REPLACE',(a_params['id'] ? a_params['id'] : a_params['s']));
+    builtUrl = builtUrl.replace('URI_REPLACE',a_params['uri']);
     builtUrl = builtUrl.replace('APP_REPLACE',a_params['app']);
     req.open("GET", builtUrl, false);
     
