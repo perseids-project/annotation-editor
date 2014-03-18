@@ -40,7 +40,7 @@
          the application:
          DOC_REPLACE : gets replaced with the document identifier
         -->
-        <meta name="perseids-exitURL" content="http://sosol.perseids.org/sosol/dmm_api/item/AlignmentCite/DOC_REPLACE/return/edit"/>
+        <meta name="perseids-exitURL" content="http://localhost/dmm_api/item/CtsOAC/DOC_REPLACE/return/edit"/>
         <meta name="perseids-exitLabel" content="Annotations List"/>
         
         
@@ -69,7 +69,7 @@
                     <table style="border:none; padding:0">
                         <tr>
                             <td>
-                                <div id="sent-navigation">
+                                <div id="navigation">
                                     <table style="border:1px solid black; padding:0">
                                         <tr>
                                             <td>
@@ -103,6 +103,9 @@
                                 </div>
                             </td>
                             <td>
+                                <button id="save-button" onclick="ClickOnSave(event)">Save</button>
+                            </td>
+                            <td>
                                 <form onsubmit="return SubmitExit(this)" name="navigation-exit">
                                     <input type="hidden" name="doc"/>
                                     <input type="hidden" name="s"/>
@@ -117,8 +120,10 @@
         </tr>
         <tr>
             <td>
-                <button id="save-button" onclick="ClickOnSave(event)">Save annotation</button>
-                <button id="new-button" onclick="ClickOnNew(event)">New annotation</button>
+                <div id="target_links" style="display:none;">
+                    <span class="label">Other actions for current target:</span>    
+                </div>
+                
            </td>
        </tr>
        </table>

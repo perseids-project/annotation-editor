@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:oa="http://www.w3.org/ns/oa#"
+	xmlns:oax="http://www.w3.org/ns/openannotation/extensions/"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema#"
+	xmlns:frbr="http://purl.org/vocab/frbr/core#"
+	xmlns:dcterms="http://purl.org/dc/terms/"
+	xmlns:pelagios="http://pelagios.github.io/vocab/terms#"
+	xmlns:foaf="http://xmlns.com/foaf/0.1/"
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+<rdf:Description rdf:about="http://pelagios.org/recogito/egd">
+	<rdf:type rdf:resource="http://pelagios.github.io/vocab/terms#AnnotatedThing"/>
+	<dcterms:title>http://sosol.perseids.org/sosol/cts/getpassage/1574/urn:cts:pdlpsci:bodin.livrep.perseus-lat1:1.1</dcterms:title>
+</rdf:Description>
+
+<rdf:Description rdf:nodeID="node18jb7otr3x31">
+	<rdf:type rdf:resource="http://www.w3.org/ns/openannotation/extensions/TextOffsetSelector"/>
+	<oax:offset rdf:datatype="http://www.w3.org/2001/XMLSchema#int">15</oax:offset>
+	<oax:range rdf:datatype="http://www.w3.org/2001/XMLSchema#int">10</oax:range>
+</rdf:Description>
+
+<rdf:Description rdf:nodeID="node18jb7otr3x32">
+	<rdf:type rdf:resource="http://www.w3.org/ns/oa#SpecificResource"/>
+	<oa:hasSource>http://pelagios.org/recogito/egd</oa:hasSource>
+	<oa:hasSelector rdf:nodeID="node18jb7otr3x31"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://pelagios.org/recogito/api/annotations/8c7d200f-9439-4a1a-b6df-631928168239">
+	<rdf:type rdf:resource="http://www.w3.org/ns/oa#Annotation"/>
+	<oa:hasTarget rdf:nodeID="node18jb7otr3x32"/>
+</rdf:Description>
+
+<rdf:Description rdf:nodeID="node18jb7otr3x33">
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">familiarum</label>
+	<rdf:type rdf:resource="http://pelagios.github.io/vocab/terms#Toponym"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://pelagios.org/recogito/api/annotations/8c7d200f-9439-4a1a-b6df-631928168239">
+	<oa:hasBody rdf:nodeID="node18jb7otr3x33"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://pelagios.org/recogito#version1.0">
+	<rdf:type rdf:resource="http://xmlns.com/foaf/0.1/Agent"/>
+	<foaf:name>Recogito Annotation Tool</foaf:name>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://pelagios.org/recogito/api/annotations/8c7d200f-9439-4a1a-b6df-631928168239">
+	<oa:serializedBy rdf:resource="http://pelagios.org/recogito#version1.0"/>
+</rdf:Description>
+
+<rdf:Description rdf:nodeID="node18jb7otr3x34">
+	<rdf:type rdf:resource="http://www.w3.org/ns/openannotation/extensions/TextOffsetSelector"/>
+	<oax:offset rdf:datatype="http://www.w3.org/2001/XMLSchema#int">104</oax:offset>
+	<oax:range rdf:datatype="http://www.w3.org/2001/XMLSchema#int">12</oax:range>
+</rdf:Description>
+
+<rdf:Description rdf:nodeID="node18jb7otr3x35">
+	<rdf:type rdf:resource="http://www.w3.org/ns/oa#SpecificResource"/>
+	<oa:hasSource>http://pelagios.org/recogito/egd</oa:hasSource>
+	<oa:hasSelector rdf:nodeID="node18jb7otr3x34"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://pelagios.org/recogito/api/annotations/86d4ac21-86ce-4326-b948-04938dfdc16a">
+	<rdf:type rdf:resource="http://www.w3.org/ns/oa#Annotation"/>
+	<oa:hasTarget rdf:nodeID="node18jb7otr3x35"/>
+</rdf:Description>
+
+<rdf:Description rdf:nodeID="node18jb7otr3x36">
+	<label xmlns="http://www.w3.org/2000/01/rdf-schema#">Definitionem</label>
+	<rdf:type rdf:resource="http://pelagios.github.io/vocab/terms#Toponym"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://pelagios.org/recogito/api/annotations/86d4ac21-86ce-4326-b948-04938dfdc16a">
+	<oa:hasBody rdf:nodeID="node18jb7otr3x36"/>
+	<oa:serializedBy rdf:resource="http://pelagios.org/recogito#version1.0"/>
+</rdf:Description>
+
+</rdf:RDF>

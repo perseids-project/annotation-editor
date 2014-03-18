@@ -94,3 +94,22 @@ select[name='group_urn'], select[name='work_urn'], select[name='version_urn']   
     min-width: 5em;
     display: none;
 }
+
+#perseids-put-notice {
+    text-align:center;
+    font-weight: bold;
+    color:green;
+}
+
+#perseids-put-notice.error {
+    color:red;
+}
+
+#navigation {
+    display: none;
+}
+
+#target_links button a {
+    text-decoration: none;
+    color: black;
+}

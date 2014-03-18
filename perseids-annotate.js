@@ -170,6 +170,22 @@ function Init(e_event,a_load) {
         $("button", exitForm).text(exitLabel.attr("content"));
     }
     
+    $("#target_links").append(
+        '<button id="new-button" onclick="ClickOnNew(event)">New Annotation</button>'
+    );
+    for (var i=0; i<s_config['target_links'].length; i++) {
+        var target_param = s_config.target_links[i].target_param;
+        var passthrough = s_config.target_links[i].passthrough;
+        $("#target_links").append(
+            '<button id="target_link' + i + '">' +
+            '<a class="target_link" href="' + s_config.target_links[i]['url'] + 
+            '" data-passthrough="' + (passthrough ? passthrough : '') + '" data-param="' + (target_param ? target_param : '') + '">' + 
+            s_config['target_links'][i]['label'] + 
+            '</a></button>'
+        );
+    }
+    $("#target_links a.target_link").click(ClickOnTargetLink);
+    $("#target_links").show();
     InitAnnotation();
   
 }
@@ -199,6 +215,8 @@ function InitAnnotation() {
     var body_passages = [];
     var body_uris = [];
     
+    $(".target_uri").remove();
+    $(".body_uri").remove();
     
     $("hasTarget",annotation).each(
         function() {
@@ -252,15 +270,19 @@ function InitAnnotation() {
         }
     );
     
-    $.each(body_uris,
-        function(a_i) {
-           var index = a_i +1;
-           $("#bodies").append('<input type="text" id="body_uri' + index + '" name="body_uri' + index +'" class="body_uri" value="' + this + '"/>');
-           if (a_i > 0) {
-               $("#bodies").append('<button id="remove_body_uri' + index + '" class="remove_body_uri">Remove</button>');           
-           }
-
-        });
+    if (body_uris.length > 0) {
+     $.each(body_uris,
+         function(a_i) {
+            var index = a_i +1;
+            $("#bodies").append('<input type="text" id="body_uri' + index + '" name="body_uri' + index +'" class="body_uri" value="' + this + '"/>');
+            if (a_i > 0) {
+                $("#bodies").append('<button id="remove_body_uri' + index + '" class="remove_body_uri">Remove</button>');           
+            }
+ 
+         });
+    } else {
+        $("#bodies").append('<input type="text" id="body_uri1" name="body_uri1" class="body_uri" value=""/>');
+    }
     $('.target_uri').keypress(function() { set_state(true);});
     $('.body_uri').keypress(function() { set_state(true);});
    
@@ -270,6 +292,8 @@ function InitAnnotation() {
         // TODO support multiple different base passages
         current_annotation_target = target_passages[0];
         get_target_passage();
+    } else {
+        toggle_highlight(false,['selected','highlighted'],null,'target');
     }
      // reload if we need to, otherwise just reset highlighting
     if (reloadBody) {
@@ -277,6 +301,8 @@ function InitAnnotation() {
         // TODO support multiple different base passages
         current_annotation_body = body_passages[0];
         get_body_passage();
+    } else {
+        toggle_highlight(false,['selected','highlighted'],null,'body');
     }
     $('.target_uri').click(select_target_input);
     $('.remove_target_uri').click(function() {remove_target_input();}); 
@@ -811,45 +837,53 @@ function update_body_urn_parts() {
   
 function update_cite_info() {
     // clear the #citeinfo div in the form
+    $('#cts_request_button').prop('disabled',true);
     $('#citeinfo').html('');
     $('#cts_request_button').prop('disabled',true);
     // get the current edition and repo from the form input
     var inventory = $('#body_repo option:selected').val();
     var textgroup = $('#group_urn option:selected').val();
     var work = $('#work_urn option:selected').val();
+    var version = null;
     if (inventory && textgroup && work) { 
         work = work.replace(textgroup+".",'');
-        var version = $('#version_urn').val().match(/^.*?([^\.]+)$/)[1];
-        // lookup citation labels from stored inventory data
-        // for each citation level, add label and input to the #citeinfo div in the form
-        var citeinfo = 
-            inventories[inventory][textgroup].works[work].editions[version] != null ? 
-            inventories[inventory][textgroup].works[work].editions[version].cites :
-            inventories[inventory][textgroup].works[work].translations[version] != null ? 
-            inventories[inventory][textgroup].works[work].translations[version].cites : [];
+        var version_urn = $('#version_urn').val();
+        if (version_urn) {
+            version = version_urn.match(/^.*?([^\.]+)$/)[1];
+        }
+        if (version != null) {
+            // lookup citation labels from stored inventory data
+            // for each citation level, add label and input to the #citeinfo div in the form
+            var citeinfo = 
+                inventories[inventory][textgroup].works[work].editions[version] != null ? 
+                inventories[inventory][textgroup].works[work].editions[version].cites :
+                inventories[inventory][textgroup].works[work].translations[version] != null ? 
+                inventories[inventory][textgroup].works[work].translations[version].cites : [];
+              
+            var range = body_urn_parts.passage ? body_urn_parts.passage.split('-') : [];
+            var values = [];
+            for (var i=0; i<range.length;i++) {
+                values[i] = range[i].split('.');
+            } 
+            $('#citeinfo').append('<span class="cite_span_label">From:</span>');
           
-        var range = body_urn_parts.passage ? body_urn_parts.passage.split('-') : [];
-        var values = [];
-        for (var i=0; i<range.length;i++) {
-            values[i] = range[i].split('.');
-        } 
-        $('#citeinfo').append('<span class="cite_span_label">From:</span>');
-      
-        for (var i=0; i<citeinfo.length; i++) {
-            var value = (values[0] != null && values[0].length == citeinfo.length) ? values[0][i] : '';
-            $('#citeinfo').append(
-                '<label class="cite_from_label" for="cite_from' + i + '">' + citeinfo[i] + '</label>' +
-                '<input type="text" name="cite_from_' + i + '" class="cite_from" value="' + value +'"/>');
-        }
-        $('#citeinfo').append('<br/><span class="cite_span_label">To:</span>');
-        for (var i=0; i<citeinfo.length; i++) {
-            var value = (values[1] != null && values[1].length == citeinfo.length) ? values[1][i] : '';
-            $('#citeinfo').append(
-                '<label class="cite_to_label" for="cite_to' + i + '">' + citeinfo[i] + '</label>' +
-                '<input type="text" name="cite_to_' + i + '" class="cite_to" value="' + value +'"/>');
-        }
-    }
-    $('#cts_request_button').prop('disabled',false);
+            for (var i=0; i<citeinfo.length; i++) {
+                var value = (values[0] != null && values[0].length == citeinfo.length) ? values[0][i] : '';
+                $('#citeinfo').append(
+                    '<label class="cite_from_label" for="cite_from' + i + '">' + citeinfo[i] + '</label>' +
+                    '<input type="text" name="cite_from_' + i + '" class="cite_from" value="' + value +'"/>');
+            }
+            $('#citeinfo').append('<br/><span class="cite_span_label">To:</span>');
+            for (var i=0; i<citeinfo.length; i++) {
+                var value = (values[1] != null && values[1].length == citeinfo.length) ? values[1][i] : '';
+                $('#citeinfo').append(
+                    '<label class="cite_to_label" for="cite_to' + i + '">' + citeinfo[i] + '</label>' +
+                    '<input type="text" name="cite_to_' + i + '" class="cite_to" value="' + value +'"/>');
+            }
+             $('#cts_request_button').prop('disabled',false);
+         }
+    } 
+   
 }
   
 // Merges the individual components of the citation into the passage component of a CTS URN
@@ -969,6 +1003,7 @@ function get_body_passage() {
                   } else {
                   set_body_content(a_data);
                 }
+                set_state(true);
               }).fail(
                 function() {
                   set_content('body','<div class="error">Unable to load the requested text.</div>');
@@ -1027,7 +1062,7 @@ function save_new() {
 }
 
 function set_state(a_unsaved) {
-    unsaved = true;
+    unsaved = a_unsaved;
     adjust_buttons();
 }
 
@@ -1048,6 +1083,95 @@ function ClickOnSave(a_evt)
         SaveContents(null);
     }
 };
+
+function ClickOnNew(a_evt)
+{
+    // give user chance to save changes
+    SaveContents("Save changes before continuing?");
+    
+    // setup an new annotation for this target
+    // keep the first body reference and motivation only if the body is a CTS urn
+    var body = $("#body_uri1").val();
+    var motivation = $("#annotation_motivation option:selected").val();
+    if (body.match(/urn:cts:/)) {
+        body = body.replace(/@.*$/,''); 
+    } else {
+        body = '';
+        motivation = '';
+    }
+    s_annotationTransform.setParameter(null, "e_targets", $("#target_uri1").val().replace(/@.*$/,''))
+    
+    s_annotationTransform.setParameter(null, "e_bodies", body);
+    s_annotationTransform.setParameter(null, "e_motivation", motivation);
+    s_annotationTransform.setParameter(null, "e_agentUri", s_param["version"]);
+    var xml = s_annotationTransform.transformToDocument(annotationXml);
+    var response = putContents(xml.documentElement,
+                         s_createAnnotationURL,
+                         s_param["doc"],
+                         '');
+    var uri = $(response).text();
+    if (uri) {
+        s_param['uri'] = uri;
+        InitAnnotation();
+    } else {
+        var msg = "Something went wrong - unable to retrieve URI of new annotation";
+        alert(msg);
+        throw(msg);
+        return false;
+    }
+  
+};
+
+function ClickOnTargetLink() {
+    var link = $(this);
+    
+    // give user chance to save changes
+    SaveContents("Save changes before continuing?");
+   
+    var valid_targets = merge_input('target');
+    if (null == valid_targets) {
+       alert("You have one more more invalid annotation target uris specified.");
+       return false;
+    } else if ( valid_targets.length == 0) {
+      alert("You need to specify at least one valid uri as an annotation target.");
+      return false;
+    }
+    targets = $.map($(valid_targets),function(elem,i) { return $(elem).val(); })
+    var url = link.attr("href");
+    if (link.attr("data-param") != '') {
+        // if a target parameter name was supplied, include all the targets as-is
+        for (var i=0; i<targets.length; i++) {
+            url = url + "&" + link.attr("data-param") + '=' + targets[i];
+        }
+    } else {
+        // otherwise just append the first target for the passage to the url
+        url = url + targets[0].replace(/@.*$/,'');
+    }
+    // if it's a pass through link, retrieve the contents and submit to the passthrough url
+    var passthrough = $(this).attr("data-passthrough");
+    if (passthrough.match(/^https?:\/\//)) {
+        $.get(url)
+         .done(
+            function(a_data) {
+                var response = putContents(a_data,
+                         passthrough,
+                         '',
+                         '');
+            }
+         ).fail(
+            function(jqXHR, textStatus, errorThrown) { 
+                var msg = "Can't get data";
+                alert(msg);
+                throw(msg);
+            }
+         );
+         $("#perseids-put-notice").removeClass("error").addClass("loading").html("Retrieving...");
+         return false;
+    } else {
+        $(this).attr("href",url);
+        return true;
+    }
+}
 
 // save contents to database
 function SaveContents(a_confirm)
@@ -1108,22 +1232,24 @@ function sameOrigin(a_url) {
  * @param {Element} a_xml sentence to put
  * @param {String} a_url URL to send sentence to
  * @param {String} a_doc document name
- * @param {String} a_sentid sentence id
+ * @param {String} a_uri annotation uri
  */
-function putContents(a_xml, a_url, a_doc, a_sentid)
+function putContents(a_xml, a_url, a_doc, a_uri)
 {
     // clear any old notice out
     $("#perseids-put-notice").html('');
     // if nothing has changed, do nothing
     // (shouldn't ever happen because save button should be disabled)
-    if (! unsaved_changes()) {
+    // if uri is empty then we're doing a create rather than a save s
+    // so no alert
+    if (! unsaved_changes() && a_uri != '') {
         alert("No Changes to Save!")   
         return;
     }
     // send synchronous request to save
     var req = new XMLHttpRequest();
     var builtUrl = a_url.replace('DOC_REPLACE',a_doc);
-    builtUrl = builtUrl.replace('URI_REPLACE',a_sentid);
+    builtUrl = builtUrl.replace('URI_REPLACE',a_uri);
     req.open("POST", builtUrl, false);
     // check to see if we need to send a session token
     var sessionToken = $("meta[name='perseids-sessionTokenName']").attr("content");
@@ -1145,14 +1271,19 @@ function putContents(a_xml, a_url, a_doc, a_sentid)
         { 
             msg = msg + $(req.responseXML.documentElement).text();
         } else {
-            msg = msg + "Error saving sentence " + a_sentid + " in " + a_doc;
+            msg = msg + "Error saving " + a_uri + " in " + a_doc;
         }
         msg = msg + ": " + (req.responseText ? req.responseText : req.statusText);
         $("#perseids-put-notice").addClass("error").text(msg);
         throw(msg);
+    } else if (a_uri != '') {
+        $("#perseids-put-notice").removeClass("error").removeClass("loading").html("Changes Saved!");
+    } else if (a_doc != '') {
+        $("#perseids-put-notice").removeClass("error").removeClass("loading").html("Annotation Created!");
     } else {
-        $("#perseids-put-notice").removeClass("error").html("Changes Saved!");
+        $("#perseids-put-notice").removeClass("error").removeClass("loading").text(new XMLSerializer().serializeToString(req.responseXML));
     }
+    return $(req.responseXML.documentElement);
 }
 
 /**
