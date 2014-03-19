@@ -129,8 +129,27 @@ function Init(e_event,a_load) {
         }
     );
     
-    
-    
+    // update the interface for the mode
+    if (s_param['app'] == 'editor') {
+        $('#save-button').show();
+        $("#target_links").append(
+            '<button id="new-button" onclick="ClickOnNew(event)">New Annotation</button>'
+        );
+        for (var i=0; i<s_config['target_links'].length; i++) {
+            var target_param = s_config.target_links[i].target_param;
+            var passthrough = s_config.target_links[i].passthrough;
+            $("#target_links").append(
+                '<a class="target_link" href="' + s_config.target_links[i]['url'] + 
+                '" data-passthrough="' + (passthrough ? passthrough : '') + '" data-param="' + (target_param ? target_param : '') + '">' +
+                '<button id="target_link' + i + '">' + s_config['target_links'][i]['label'] + '</button></a>' 
+            );
+        }
+        $("#target_links a.target_link").click(ClickOnTargetLink);
+        $("#target_links").show();
+    } else {
+        $('#save-button').hide();
+        $("#target_links").hide();
+    }
     // update the interface from the config
     $("#annotation_motivation").html('');
     $.each(s_config.motivations,
@@ -169,23 +188,6 @@ function Init(e_event,a_load) {
         $("input[name='doc']", exitForm).attr("value", s_param["doc"]);
         $("button", exitForm).text(exitLabel.attr("content"));
     }
-    
-    $("#target_links").append(
-        '<button id="new-button" onclick="ClickOnNew(event)">New Annotation</button>'
-    );
-    for (var i=0; i<s_config['target_links'].length; i++) {
-        var target_param = s_config.target_links[i].target_param;
-        var passthrough = s_config.target_links[i].passthrough;
-        $("#target_links").append(
-            '<button id="target_link' + i + '">' +
-            '<a class="target_link" href="' + s_config.target_links[i]['url'] + 
-            '" data-passthrough="' + (passthrough ? passthrough : '') + '" data-param="' + (target_param ? target_param : '') + '">' + 
-            s_config['target_links'][i]['label'] + 
-            '</a></button>'
-        );
-    }
-    $("#target_links a.target_link").click(ClickOnTargetLink);
-    $("#target_links").show();
     InitAnnotation();
   
 }
@@ -316,6 +318,7 @@ function InitAnnotation() {
     $('#body_content .token').mousedown(start_body);
     $('#body_content .token').mouseup(end_body);
     selected_body = $('#body_uri1').get(0);
+    set_state(false);
 }
 
 function get_target_passage() {
@@ -1072,9 +1075,9 @@ function unsaved_changes() {
 
 function adjust_buttons() {
     if (unsaved_changes()) {
-        $("#save_button").prop("disabled",false);
+        $("#save-button").prop("disabled",false);
     } else {
-        $("#save_button").prop("disabled",false);
+        $("#save-button").prop("disabled",true);
     }
 }
 function ClickOnSave(a_evt)
