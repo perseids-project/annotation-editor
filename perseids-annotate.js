@@ -338,7 +338,7 @@ function get_target_passage() {
       function(a_data) {
         if (s_passageTransform != null) {
             var content = s_passageTransform.transformToDocument(a_data);
-            var div = $("div",content);
+            var div = $("div#tei_body",content);
             if (div.length > 0) {
                 set_content('target',div.get(0).innerHTML);
             } else {
@@ -996,10 +996,9 @@ function get_body_passage() {
               function(a_data) {
                 if (s_passageTransform != null) {
                     var content = s_passageTransform.transformToDocument(a_data);
-                    var div = $("body",content);
+                    var div = $("div#tei_body",content);
                     if (div.length > 0) {
-                        set_content('body',
-                            ($.map($("body",content),function(a_e) { return $(a_e).html();})).join(''));
+                        set_content('body',$(div).html());
                         $(".add_body").show();
                     } else {
                         set_content('body','<div class="error">Unable to transform the requested text.</div>')
