@@ -996,10 +996,10 @@ function get_body_passage() {
               function(a_data) {
                 if (s_passageTransform != null) {
                     var content = s_passageTransform.transformToDocument(a_data);
-                    var div = $("div",content);
+                    var div = $("body",content);
                     if (div.length > 0) {
                         set_content('body',
-                            ($.map($("div",content),function(a_e) { return $(a_e).html();})).join(''));
+                            ($.map($("body",content),function(a_e) { return $(a_e).html();})).join(''));
                         $(".add_body").show();
                     } else {
                         set_content('body','<div class="error">Unable to transform the requested text.</div>')
@@ -1083,9 +1083,7 @@ function adjust_buttons() {
 }
 function ClickOnSave(a_evt)
 {
-    if (check_input()) {
-        SaveContents(null);
-    }
+    SaveContents(null);
 };
 
 function ClickOnNew(a_evt)
@@ -1128,11 +1126,11 @@ function ClickOnNew(a_evt)
 
 function ClickOnTargetLink() {
     var link = $(this);
+    var valid_targets = merge_input('target');
     
     // give user chance to save changes
     SaveContents("Save changes before continuing?");
    
-    var valid_targets = merge_input('target');
     if (null == valid_targets) {
        alert("You have one more more invalid annotation target uris specified.");
        return false;
@@ -1180,6 +1178,8 @@ function ClickOnTargetLink() {
 // save contents to database
 function SaveContents(a_confirm)
 {
+    // validate
+    if (check_input()) {
     // if need to confirm
     if (a_confirm)
     {
@@ -1210,6 +1210,7 @@ function SaveContents(a_confirm)
     set_state(false);
     adjust_buttons();
     return true;
+    }
 };
 
 /**
