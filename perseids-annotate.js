@@ -904,7 +904,7 @@ function merge_cite_info() {
         return false;
     }
     var end = $.grep(
-        $.map($('input.cite_from'),
+        $.map($('input.cite_to'),
         function(e,i) { 
             return e.value; 
         }),function(a,i) { return a.match(/[\w\d]+/) });
@@ -998,7 +998,8 @@ function get_body_passage() {
                     var content = s_passageTransform.transformToDocument(a_data);
                     var div = $("div",content);
                     if (div.length > 0) {
-                        set_content('body',div.get(0).innerHTML);
+                        set_content('body',
+                            ($.map($("div",content),function(a_e) { return $(a_e).html();})).join(''));
                         $(".add_body").show();
                     } else {
                         set_content('body','<div class="error">Unable to transform the requested text.</div>')

@@ -113,3 +113,10 @@ select[name='group_urn'], select[name='work_urn'], select[name='version_urn']   
     text-decoration: none;
     color: black;
 }
+
+.cts_selector_hint, .cite_selector_hint {
+	font-size: smaller;
+	font-style: italic;
+	color: #4183C4;
+	cursor: pointer;
+}
