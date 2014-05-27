@@ -14,6 +14,7 @@ var body_urn_parts = {};
 var body_subref_start;
 var body_subref_end;
 var unsaved = false;
+var tokens = { "body": [], "target": []};
   
 var current_annotation_target = null;
 var current_annotation_body = null;
@@ -486,44 +487,41 @@ function toggle_highlight(a_on,a_classes,a_elem,a_type) {
         }
         var set = (a_type == 'target' ? all_targets.get(name): all_bodies.get(name));
         if (set && set != null) {
-            for (var k=0; k<a_classes.length; k++) {
-              if (a_on) {
-                $(set[0]).addClass(a_classes[k]);
-              } else {
-                $(set[0]).removeClass(a_classes[k]);
-              }  
-            }
-          var sibs = $(set[0]).nextAll();
-          var done = false;
-          if (set[0] != set[1]) {
-            for (var i=0; i<sibs.length; i++) {
-              if (done) {
-                break;
-              }
-             for (var k=0; k<a_classes.length; k++) {
-                  if (a_on) {
-                    $(sibs[i]).addClass(a_classes[k]);
+            var started = false;
+            var done = false;
+            for (var t=0; t<tokens[a_type].length; t++) {
+                if (done) {
+                    break;
+                }
+                if (! started) {
+                    if ($(tokens[a_type][t]).attr("data-ref") == $(set[0]).attr("data-ref")) {
+                        started = true;
+                    } 
+                }
+                for (var k=0; k<a_classes.length; k++) {
+                  if (started && a_on) {
+                    $(tokens[a_type][t]).addClass(a_classes[k]);
                   } else {
-                    $(sibs[i]).removeClass(a_classes[k]);
-                  }
-                  if (sibs[i] == set[1]) {
+                    $(tokens[a_type][t]).removeClass(a_classes[k]);
+                  }  
+                }
+                if ($(tokens[a_type][t]).attr("data-ref") == $(set[1]).attr("data-ref")) {
                     done = true;
-                  }
-                } // end class iterator
-            }  // end loop through siblings
-          } // end test on set length
+                }
+            } // end iteration of tokens
         } // end test on set definition
       } // end iterator on each target
 }
   
 function set_content(a_type,a_html) {
     $('#' + a_type + '_content').html(a_html);
+    tokens[a_type] =  $('#' + a_type + '_content .token');
     if (a_type == 'target') {
-        $('#' + a_type + '_content .token').mousedown(start_target);
-        $('#' + a_type + '_content .token').mouseup(end_target);
+        tokens[a_type].mousedown(start_target);
+        tokens[a_type].mouseup(end_target);
     } else {
-        $('#' + a_type + '_content .token').mousedown(start_body);
-        $('#' + a_type + '_content .token').mouseup(end_body);
+        tokens[a_type].mousedown(start_body);
+        tokens[a_type].mouseup(end_body);
     }
     reset_content(a_type);
 }
@@ -1004,7 +1002,7 @@ function get_body_passage() {
                         set_content('body','<div class="error">Unable to transform the requested text.</div>')
                     }
                   } else {
-                  set_body_content(a_data);
+                  set_content('body',a_data);
                 }
                 set_state(true);
               }).fail(
