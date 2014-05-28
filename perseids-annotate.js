@@ -539,7 +539,10 @@ function reset_content(a_type) {
             var r_end;
             if (r_match != null) {
               var r_parts = r_match[1].split(/-/);
-              if (r_parts.length > 0) {
+              if (r_parts.length == 1) {
+                r_start = r_parts[0];
+                r_end = r_parts[0];
+              } else if (r_parts.length == 2) {
                 r_start = r_parts[0];
                 r_end = r_parts[1];
               } else {
