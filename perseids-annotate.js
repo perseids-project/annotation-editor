@@ -136,14 +136,25 @@ function Init(e_event,a_load) {
         $("#target_links").append(
             '<button id="new-button" onclick="ClickOnNew(event)">New Annotation</button>'
         );
-        for (var i=0; i<s_config['target_links'].length; i++) {
-            var target_param = s_config.target_links[i].target_param;
-            var passthrough = s_config.target_links[i].passthrough;
-            $("#target_links").append(
-                '<a class="target_link" href="' + s_config.target_links[i]['url'] + 
-                '" data-passthrough="' + (passthrough ? passthrough : '') + '" data-param="' + (target_param ? target_param : '') + '">' +
-                '<button id="target_link' + i + '">' + s_config['target_links'][i]['label'] + '</button></a>' 
-            );
+        for (var type in s_config['target_links']) {
+            var link_html = '';
+            if (s_config['target_links'][type].length > 1) {
+                link_html = link_html + '<li>'+ type + '<ul class="perseids_sub_menu">';
+            }
+            for (var i=0; i < s_config['target_links'][type].length; i++) {
+                var target_param = s_config.target_links[type][i].target_param;
+                var passthrough = s_config.target_links[type][i].passthrough;
+                link_html = link_html +
+                    '<li><a class="target_link" href="' + s_config.target_links[type][i]['href'] + 
+                    '" data-passthrough="' + (passthrough ? passthrough : '') + 
+                    '" data-param="' + (target_param ? target_param : '') + '">' +
+                    s_config['target_links'][type][i]['text'] + '</a></li>';
+                
+            }
+            if (s_config['target_links'][type].length > 1) {
+                link_html = link_html + '</ul></li>';
+            }
+            $("#target_links").append(link_html);
         }
         $("#target_links a.target_link").click(ClickOnTargetLink);
         $("#target_links").show();
@@ -328,9 +339,9 @@ function get_target_passage() {
     var tokenizer_cfg = s_config.tokenizer;
     var tokenizer_url;
     if (tokenizer_cfg[s_param['lang']]) {
-      tokenizer_url = tokenizer_cfg[s_param['lang']].request_url;
+      tokenizer_url = tokenizer_cfg[s_param['lang']];
     } else {
-      tokenizer_url = tokenizer_cfg['default'].request_url;
+      tokenizer_url = tokenizer_cfg['default'];
     }
     
     var request_url = tokenizer_url + encodeURIComponent(passage_url);
@@ -987,9 +998,9 @@ function get_body_passage() {
             var tokenizer_cfg = s_config.tokenizer;
             var tokenizer_url;
             if (tokenizer_cfg[lang]) {
-              tokenizer_url = tokenizer_cfg[lang].request_url;
+              tokenizer_url = tokenizer_cfg[lang];
             } else {
-              tokenizer_url = tokenizer_cfg['default'].request_url;
+              tokenizer_url = tokenizer_cfg['default'];
             } 
             var request_url = tokenizer_url + encodeURIComponent(passage_url);
         

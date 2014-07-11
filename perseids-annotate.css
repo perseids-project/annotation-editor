@@ -120,3 +120,49 @@ select[name='group_urn'], select[name='work_urn'], select[name='version_urn']   
 	color: #4183C4;
 	cursor: pointer;
 }
+
+ul.perseids_menu, ul.perseids_menu ul.perseids_sub_menu {
+    padding:0;
+    margin: 0;
+}
+ul.perseids_menu li, ul.perseids_menu ul.perseids_sub_menu li {
+    list-style-type: none;
+    display: inline-block;
+    color: black;
+    cursor: pointer;
+    font-family: Helvetica,Arial,sans-serif;
+    padding-left: 1em;
+    font-size: small;
+}
+/*Link Appearance*/
+ul.perseids_menu li a, ul.perseids_menu li ul.perseids_sub_menu li a {
+    display:inline-block;
+    color: black;
+    text-decoration: none;
+}
+ul.perseids_menu li a:hover, ul.perseids_menu li ul.perseids_sub_menu li a:hover {
+    text-decoration: underline;
+}
+/*Make the parent of sub-menu relative*/
+ul.perseids_menu li {
+    position: relative;
+    padding: 2px;
+    margin: 1px;
+    background: #eee;
+    border: 1px inset black;
+}
+/*sub menu*/
+ul.perseids_menu li ul.perseids_sub_menu {
+    display:none;
+    position: absolute;
+    top: 1.5em;
+    left: 0;
+    background: #eee;
+}
+ul.perseids_menu li:hover ul.perseids_sub_menu {
+    display: block;
+}
+ul.perseids_menu ul.perseids_sub_menu li {
+    border: none;
+}
+
