@@ -311,9 +311,6 @@ function InitAnnotation() {
     }
      // reload if we need to, otherwise just reset highlighting
     if (reloadBody) {
-        // for now only support a single base passage
-        // TODO support multiple different base passages
-        current_annotation_body = body_passages[0];
         get_body_passage();
     } else {
         toggle_highlight(false,['selected','highlighted'],null,'body');
@@ -1015,9 +1012,11 @@ function get_body_passage() {
               tokenizer_url = tokenizer_cfg['default'];
             } 
             var request_url = tokenizer_url + encodeURIComponent(passage_url);
-        
             $.get(request_url).done(
               function(a_data) {
+                // update the state var with the currently retrieved passage
+                // TODO support multiple different base passages
+                current_annotation_body = passage_url;
                 if (s_passageTransform != null) {
                     var content = s_passageTransform.transformToDocument(a_data);
                     var div = $("div#tei_body",content);
