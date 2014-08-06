@@ -527,6 +527,18 @@ function toggle_highlight(a_on,a_classes,a_elem,a_type) {
 function set_content(a_type,a_html) {
     $('#' + a_type + '_content').html(a_html);
     tokens[a_type] =  $('#' + a_type + '_content .token');
+    var seen = {};
+    for (var t=0; t<tokens[a_type].length; t++) {
+        var text = $(tokens[a_type][t]).text();
+        var index = 1;
+        if (seen[text]) {
+          index = ++seen[text];
+        } else {
+          seen[text] = index;
+        }
+        $(tokens[a_type][t]).attr("data-ref",text + "[" + index + "]");
+    }
+    
     if (a_type == 'target') {
         tokens[a_type].mousedown(start_target);
         tokens[a_type].mouseup(end_target);
