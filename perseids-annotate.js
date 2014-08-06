@@ -238,7 +238,7 @@ function InitAnnotation() {
             target_uris.push(uri);
             if (uri.match(/urn:cts/)) {
                 // no subreferences
-                base = uri.replace(/@.*$/,'');
+                var base = uri.replace(/@.*$/,'');
                 target_passages.push(base);
                 if (base != current_annotation_target) {
                     reloadTarget = true;
@@ -269,7 +269,7 @@ function InitAnnotation() {
             body_uris.push(uri);
             if (uri.match(/urn:cts/)) {
                 // no subreferences
-                base = uri.replace(/@.*$/,'');
+                var base = uri.replace(/@.*$/,'');
                 body_passages.push(base);
                 if (base != current_annotation_body) {
                     reloadBody = true;
