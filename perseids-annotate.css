@@ -25,7 +25,7 @@ body {
   height: 200px;
   overflow: scroll;
   border: 1px solid black;
-
+  resize: vertical;
 }
 #target_content .token {}
 .target_uri,.body_uri  {
