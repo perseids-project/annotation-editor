@@ -205,6 +205,10 @@ function Init(e_event,a_load) {
 }
 
 function InitAnnotation() {
+    // clear the hashes of selected subrefs
+    all_targets.clear();
+    all_bodies.clear();
+
     // retrieve the annotation
     $(".target_uri").remove();
     var params = [];
@@ -229,8 +233,8 @@ function InitAnnotation() {
     var body_passages = [];
     var body_uris = [];
     
-    $(".target_uri").remove();
-    $(".body_uri").remove();
+    $(".target_uri").parents(".uri_wrapper").remove();
+    $(".body_uri").parents(".uri_wrapper").remove();
     
     $("hasTarget",annotation).each(
         function() {
@@ -256,9 +260,18 @@ function InitAnnotation() {
     $.each(target_uris,
         function(a_i) {
            var index = a_i +1;
-           $("#targets").append('<input type="text" id="target_uri' + index + '" name="target_uri' + index +'" class="target_uri" value="' + this + '"/>');
+           all_targets.put('target_uri' + index,[]);
            if (a_i > 0) {
-               $("#targets").append('<button id="remove_target_uri' + index + '" class="remove_target_uri">Remove</button>');           
+               $("#targets").append(
+                   '<p class="uri_wrapper">' 
+                   + '<input type="text" id="target_uri'  
+                   + index + '" name="target_uri' + index +'" class="target_uri" value="' 
+                   + this + '"/>' 
+                   + '<button id="remove_target_uri' + index 
+                   + '" class="remove_target_uri">Remove</button>'
+                   + '</p>');           
+           } else {
+               $("#targets").append('<p class="uri_wrapper"><input type="text" id="target_uri' + index + '" name="target_uri' + index +'" class="target_uri" value="' + this + '"/></p>');
            }
 
         });
@@ -288,14 +301,22 @@ function InitAnnotation() {
      $.each(body_uris,
          function(a_i) {
             var index = a_i +1;
-            $("#bodies").append('<input type="text" id="body_uri' + index + '" name="body_uri' + index +'" class="body_uri" value="' + this + '"/>');
+            all_bodies.put('body_uri' + index,[]);
             if (a_i > 0) {
-                $("#bodies").append('<button id="remove_body_uri' + index + '" class="remove_body_uri">Remove</button>');           
+                $("#bodies").append(
+                   '<p class="uri_wrapper">'
+                   + '<input type="text" id="body_uri' + index 
+                   + '" name="body_uri' + index +'" class="body_uri" value="' + this + '"/>'
+                   + '<button id="remove_body_uri' + index 
+                   + '" class="remove_body_uri">Remove</button>' 
+                   + '</p>');           
+            } else {
+                $("#bodies").append('<p class="uri_wrapper"><input type="text" id="body_uri' + index + '" name="body_uri' + index +'" class="body_uri" value="' + this + '"/></p>');
             }
  
          });
     } else {
-        $("#bodies").append('<input type="text" id="body_uri1" name="body_uri1" class="body_uri" value=""/>');
+        $("#bodies").append('<p class="uri_wrapper"><input type="text" id="body_uri1" name="body_uri1" class="body_uri" value=""/></p>');
     }
     $('.target_uri').keypress(function() { set_state(true);});
     $('.body_uri').keypress(function() { set_state(true);});
@@ -366,9 +387,9 @@ function get_target_passage() {
 function add_target() {
     var next_target = ++target_num;
     input_name = 'target_uri' + next_target;
-    $('#targets').append('<br/>' +
+    $('#targets').append('<p class="uri_wrapper">' +
           '<input class="target_uri" type="text" id="' + input_name + '" name="' + input_name + '"/>' + 
-          '<button class="remove_target_uri" id="remove_' + input_name + '">Remove</button>');
+          '<button class="remove_target_uri" id="remove_' + input_name + '">Remove</button></p>');
     selected_target = $("#" + input_name);
     $("#"+input_name).click(select_target_input).change(function() { set_state(true);});
     $("#"+input_name).keypress(function() { set_state(true);});
@@ -380,9 +401,9 @@ function add_target() {
 function add_body() {
     var next_body = ++body_num;
     input_name = 'body_uri' + next_body;
-    $('#bodies').append('<br/>' +
+    $('#bodies').append('<p class="uri_wrapper">' +
           '<input class="body_uri" type="text" id="' + input_name + '" name="' + input_name + '"/>' + 
-          '<button class="remove_body_uri" id="remove_' + input_name + '">Remove</button>');
+          '<button class="remove_body_uri" id="remove_' + input_name + '">Remove</button></p>');
     selected_body = $("#" + input_name);
     $("#"+input_name).click(select_body_input);
     $("#"+input_name).keypress(function() { set_state(true);});
@@ -397,8 +418,16 @@ function remove_target_input(to_remove) {
     var target_name = target_input.attr('name');
     $(target_input).remove();
     $(to_remove).remove();
-    toggle_highlight(false,['selected','highlighted'],[target_name],'target');
+    toggle_highlight(false,['highlighted'],[target_name],'target');
     all_targets.remove(target_name);
+    // will trigger selection of current target
+    // so that we don't still the one being removed is selected
+    if (selected_target == target_input.get(0)) {
+        $("#target_uri"+target_num).trigger("click");
+    } else {
+        // reset the highlighting for the remaining targets
+        toggle_highlight(true,['highlighted'],null,'target');
+    }
     set_state(true);
     return false;
 }
@@ -409,8 +438,16 @@ function remove_body_input(to_remove) {
     var body_name = body_input.attr('name');
     $(body_input).remove();
     $(to_remove).remove();
-    toggle_highlight(false,['selected','highlighted'],[body_name],'body');
+    toggle_highlight(false,['highlighted'],[body_name],'body');
     all_bodies.remove(body_name);
+    // will trigger selection of current body
+    // so that we don't still the one being removed is selected
+    if (selected_body == body_input.get(0)) {
+        $("#body_uri"+body_num).trigger("click");
+    } else {
+        // reset the highlighting for the remaining bodies
+        toggle_highlight(true,['highlighted'],null,'body');
+    }
     set_state(true);
     return false;
 }
@@ -426,6 +463,7 @@ function select_target_input() {
       toggle_highlight(false,['selected'],[last_target.name],'target');
     }
     toggle_highlight(true,['selected'],[selected_target.name],'target')
+    toggle_highlight(true,['highlighted'],null,'target');
 }
 
 function select_body_input() {
@@ -438,6 +476,7 @@ function select_body_input() {
       toggle_highlight(false,['selected'],[last_body.name],'body');
     }
     toggle_highlight(true,['selected'],[selected_body.name],'body')
+    toggle_highlight(true,['highlighted'],null,'body');
 }
 
 
@@ -488,6 +527,7 @@ function toggle_highlight(a_on,a_classes,a_elem,a_type) {
     } else { 
       elems = a_elem;
     }
+    var touched = {};
     for (var j=0; j<elems.length; j++) {
         var name= elems[j];
         if (!name) {
@@ -509,8 +549,13 @@ function toggle_highlight(a_on,a_classes,a_elem,a_type) {
                 for (var k=0; k<a_classes.length; k++) {
                   if (started && a_on) {
                     $(tokens[a_type][t]).addClass(a_classes[k]);
+                    touched[t] = true;
                   } else {
-                    $(tokens[a_type][t]).removeClass(a_classes[k]);
+                    // if we have mulitple targets or bodies we don't want to
+                    // undo selections from the others we already selected
+                    if (! touched[t]) {
+                        $(tokens[a_type][t]).removeClass(a_classes[k]);
+                    }
                   }  
                 }
                 if ($(tokens[a_type][t]).attr("data-ref") == $(set[1]).attr("data-ref")) {
