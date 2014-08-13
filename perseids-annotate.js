@@ -144,8 +144,10 @@ function Init(e_event,a_load) {
             for (var i=0; i < s_config['target_links'][type].length; i++) {
                 var target_param = s_config.target_links[type][i].target_param;
                 var passthrough = s_config.target_links[type][i].passthrough;
+                var href= decodeURIComponent(s_config.target_links[type][i]['href']);
+                href=href.replace('&','&amp;')
                 link_html = link_html +
-                    '<li><a class="target_link" href="' + s_config.target_links[type][i]['href'] + 
+                    '<li><a class="target_link" href="' + href + 
                     '" data-passthrough="' + (passthrough ? passthrough : '') + 
                     '" data-param="' + (target_param ? target_param : '') + '">' +
                     s_config['target_links'][type][i]['text'] + '</a></li>';
