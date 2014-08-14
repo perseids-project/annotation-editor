@@ -189,7 +189,7 @@ function Init(e_event,a_load) {
                 $(".add_body").hide();
             }
         });
-    $("#cts_request_button").click( function() { return merge_cite_info(); } );
+    $("#cts_request_button").click( function() { return merge_cite_info(get_body_passage); } );
     $(".cite_selector_hint").click( function() { $("#cite_select_container").toggle();});
 
     // set various values in html
@@ -956,11 +956,14 @@ function update_cite_info() {
     } 
    
 }
-  
-// Merges the individual components of the citation into the passage component of a CTS URN
-// and validates that at least one component of the starting citation was supplied before
-// submitting the form.
-function merge_cite_info() {
+
+/**
+ * Merges the individual components of the citation into the passage component 
+ * of a CTS URN and validates that at least one component of the 
+ * starting citation was supplied before submitting the form.
+ * @param {Function} callback call upon successful merging of cite info
+ */
+function merge_cite_info(a_callback) {
     try {
     var start =  $.grep(
         $.map($('input.cite_from'),
@@ -995,8 +998,13 @@ function merge_cite_info() {
     // hack to prevent replacement of uri during board review
     if (!old_uri_value || (old_uri_value.match(uri_match) == null && s_param['app'] == 'editor')) {
         $(selected_body).val(uri);
+        // make sure change event on uri element is triggered
+        $(selected_body).trigger('change');
     }
-    get_body_passage();
+    if (a_callback) {
+        a_callback.call();
+    }
+
     } catch (a_e) {
         console.log(a_e);
     }

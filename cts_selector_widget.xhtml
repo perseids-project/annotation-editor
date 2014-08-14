@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <link rel="stylesheet" type="text/css" href="perseids-annotate.css"/>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+   <script type="text/javascript" src="jshashtable-3.0.js"></script>
+   <script type="text/javascript" src="perseids-annotate.js"></script>
+   <script type="text/javascript" src="cts_selector_widget.js"></script>
+   <meta name="cts_repos_url" content="http://localhost/cts/getrepos"/>
+   <meta name="cts_capabilities_url" content="http://localhost/cts/getcapabilities/"/>
+</head>
+<body>
+  <input type="text" name="text_uri" id="text_uri" size="100"/>
+  <p class="cts_selector_hint">Click  to show/hide available textual sources</p>
+  <div id="cts_annotation_selector">
+  <div id="cts_select_container" style="display:none;">    
+    <select id="body_repo" name="body_repo"/>
+    <select id="group_urn" name="group_urn"/>
+    <select id="work_urn" name="work_urn"/>
+    <select id="version_urn" name="version_urn"/>
+    <div id="citeinfo">
+    </div>
+    <button id="cts_request_button">Request Resource</button>
+  </div>
+  </div>
+</body>
+</html>
