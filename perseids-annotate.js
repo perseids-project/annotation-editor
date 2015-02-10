@@ -182,7 +182,7 @@ function Init(e_event,a_load) {
     $('#version_urn').change(update_cite_info);
     $(".cts_selector_hint").click( 
         function() { 
-            $("#cts_select_container").toggle();
+            $("#cts_select_container").toggle('slow');
             if ($("#cts_select_container:visible").length == 1) {
                 $(".add_body").show();
             } else {
@@ -190,7 +190,10 @@ function Init(e_event,a_load) {
             }
         });
     $("#cts_request_button").click( function() { return merge_cite_info(get_body_passage); } );
-    $(".cite_selector_hint").click( function() { $("#cite_select_container").toggle();});
+    $(".cite_selector_hint").click( 
+      function() { 
+        $("#cite_select_container").toggle('slow');
+      });
 
     // set various values in html
     var exitForm = $("form[name='navigation-exit']", document);
