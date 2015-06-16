@@ -342,14 +342,14 @@ function InitAnnotation() {
         toggle_highlight(false,['selected','highlighted'],null,'body');
     }
     $('.target_uri').click(select_target_input);
-    $('.remove_target_uri').click(function() {remove_target_input();}); 
+    $('.remove_target_uri').click(function() {return remove_target_input(this);}); 
     $('#target_content .token').mousedown(start_target);
     $('#target_content .token').mouseup(end_target);
     selected_target = $('#target_uri1').get(0);
     
     //body
     $('.body_uri').click(select_body_input);
-    $('.remove_body_uri').click(function() {remove_body_input();}); 
+    $('.remove_body_uri').click(function() {return remove_body_input(this);}); 
     $('#body_content .token').mousedown(start_body);
     $('#body_content .token').mouseup(end_body);
     selected_body = $('#body_uri1').get(0);
