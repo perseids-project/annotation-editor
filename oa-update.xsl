@@ -26,12 +26,12 @@
     <xsl:template match="oa:Annotation">
         <xsl:variable name="targets">
             <xsl:call-template name="tokenize_list">
-                <xsl:with-param name="remainder" select="$e_targets"/>
+                <xsl:with-param name="remainder" select="normalize-space($e_targets)"/>
             </xsl:call-template>
         </xsl:variable>
         <xsl:variable name="bodies">
             <xsl:call-template name="tokenize_list">
-                <xsl:with-param name="remainder" select="$e_bodies"/>
+                <xsl:with-param name="remainder" select="normalize-space($e_bodies)"/>
             </xsl:call-template>
         </xsl:variable>
         <xsl:copy>
