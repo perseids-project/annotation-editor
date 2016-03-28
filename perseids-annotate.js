@@ -24,6 +24,7 @@ var s_putAnnotationURL = null;
 var s_passageTransform = null;
 var s_annotationTransform = null;
 var s_getInfoURL = null;
+var s_exitURL = null;
 var s_config = null;
 var s_param = [];
 var annotationXml;
@@ -101,6 +102,8 @@ function Init(e_event,a_load) {
         $("meta[name='perseids-createAnnotationURL']", document).attr("content").replace(/ITEMTYPE_REPLACE/,itemtype);
     s_getInfoURL = 
         $("meta[name='perseids-getInfoURL']",document).attr("content").replace(/DOC_REPLACE/,s_param['doc']).replace(/ITEMTYPE_REPLACE/,itemtype);
+    s_exitURL = 
+        $("meta[name='perseids-exitURL']", document).attr("content").replace(/DOC_REPLACE/,s_param['doc']).replace(/ITEMTYPE_REPLACE/,itemtype);
 
     // get the configuration information
     // json object is expected to contain:
@@ -223,9 +226,8 @@ function Init(e_event,a_load) {
 
     // set various values in html
     var exitForm = $("form[name='navigation-exit']", document);
-    var exitURL = $("meta[name='perseids-exitURL']", document);
-    if (exitURL.length > 0) {
-        var exitAction = exitURL.attr("content").replace(/DOC_REPLACE/,s_param["doc"]);
+    if (s_exitURL.length > 0) {
+        var exitAction = s_exitURL;
         var exitLabel = $("meta[name='perseids-exitLabel']", document);
         exitForm.attr("action", exitAction);
         $("input[name='doc']", exitForm).attr("value", s_param["doc"]);
