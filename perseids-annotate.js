@@ -23,6 +23,7 @@ var s_getAnnotationURL = null;
 var s_putAnnotationURL = null;
 var s_passageTransform = null;
 var s_annotationTransform = null;
+var s_getInfoURL = null;
 var s_config = null;
 var s_param = [];
 var annotationXml;
@@ -68,14 +69,39 @@ function Init(e_event,a_load) {
     }
     s_param["numParams"] = numParams;
     // get URLs from header
-    s_getAnnotationURL =
-        $("meta[name='perseids-getAnnotationURL']", document).attr("content");
-    s_putAnnotationURL =
-        $("meta[name='perseids-putAnnotationURL']", document).attr("content");
-    s_createAnnotationURL = 
-        $("meta[name='perseids-createAnnotationURL']", document).attr("content");
+    s_peekURL =
+        $("meta[name='perseids-peekURL']", document).attr("content");
 
+    // get the peek info
+    // eventually this will replace the info request and all other urls will come from here too
+    var itemtype;
+    $.ajax({
+        dataType: "json",
+        url: $("meta[name='perseids-peekURL']",document).attr("content").replace(/DOC_REPLACE/,s_param['doc']),
+        async: false
+    }).done( 
+        function(data) {
+            itemtype = data['type'].replace(/Identifier/,'');
+        }
+    ).fail(
+        function(jqXHR, textStatus, errorThrown) { 
+            var msg = "Can't get Service Info";
+            alert(msg);
+            throw(msg);
+        }
+    );
+
+   debugger;
     
+    s_getAnnotationURL =
+        $("meta[name='perseids-getAnnotationURL']", document).attr("content").replace(/ITEMTYPE_REPLACE/,itemtype);
+    s_putAnnotationURL =
+        $("meta[name='perseids-putAnnotationURL']", document).attr("content").replace(/ITEMTYPE_REPLACE/,itemtype);
+    s_createAnnotationURL = 
+        $("meta[name='perseids-createAnnotationURL']", document).attr("content").replace(/ITEMTYPE_REPLACE/,itemtype);
+    s_getInfoURL = 
+        $("meta[name='perseids-getInfoURL']",document).attr("content").replace(/DOC_REPLACE/,s_param['doc']).replace(/ITEMTYPE_REPLACE/,itemtype);
+
     // get the configuration information
     // json object is expected to contain:
     //  tokenizer
@@ -83,7 +109,7 @@ function Init(e_event,a_load) {
     //  passage transform
     $.ajax({
         dataType: "json",
-        url: $("meta[name='perseids-getInfoURL']",document).attr("content").replace(/DOC_REPLACE/,s_param['doc']),
+        url: s_getInfoURL,
         async: false
     }).done( 
         function(data) {
@@ -98,7 +124,7 @@ function Init(e_event,a_load) {
     );
      $.ajax({
         dataType: "xml",
-        url: s_config['passage_xslt'],
+        url: s_config['passage_xslt'] || "./cts_annotate.xsl",
         async: false
     }).done( 
         function(data) {
@@ -175,7 +201,7 @@ function Init(e_event,a_load) {
     $("#add_target").click(function() { add_target(); return false; });
     $("#add_body").click(function() { add_body(); return false; });
     // now setup the body
-    $("#body_repo").change(get_cts_inventory);
+    $("#body_repo").change(get_body_cts);
     get_repos();
     $('#group_urn').change(update_work_urns);
     $('#work_urn').change(update_version_urns);
@@ -205,8 +231,6 @@ function Init(e_event,a_load) {
         $("input[name='doc']", exitForm).attr("value", s_param["doc"]);
         $("button", exitForm).text(exitLabel.attr("content"));
     }
-    InitAnnotation();
-  
 }
 
 function InitAnnotation() {
@@ -358,10 +382,54 @@ function InitAnnotation() {
 
 function get_target_passage() {
     var passage_url = current_annotation_target;
-   
+    // get the language from the inventory
+    var found_in_inv = false;
+    for (u in repos.urispaces) {
+        var uri_match = new RegExp("^" + u)
+        if (passage_url.match(uri_match)) {
+            found_in_inv = true;
+            get_cts_inventory(repos.urispaces[u],function() {tokenize_passage(passage_url,repos.urispaces[u])});
+            break;
+        }
+    }
+    if (! found_in_inv) {
+        tokenize_passage(passage_url,null);
+
+    }
+}
+
+function tokenize_passage(passage_url,inventory) {   
+    var lang;
+    if (inventory) {
+        loopall:
+        for (tg in inventories[inventory]) {
+            for (work in inventories[inventory][tg].works) {
+                for (version in inventories[inventory][tg].works[work].editions) {
+                    text =  inventories[inventory][tg].works[work].editions[version];
+                    var urn_match = new RegExp(text.urn)
+                    if (passage_url.match(urn_match)) {
+                        lang = text.lang;
+                        break loopall; 
+                    }
+                }
+                for (version in inventories[inventory][tg].works[work].translations) {
+                    text =  inventories[inventory][tg].works[work].editions[version];
+                    var urn_match = new RegExp(text.urn)
+                    if (passage_url.match(urn_match)) {
+                        lang = text.lang;
+                        break loopall; 
+                    }
+                }
+            }
+        }
+    }
+    debugger;
+    if (!lang && s_param['lang']) {
+        lang = s_param['lang'];
+    }
     var tokenizer_cfg = s_config.tokenizer;
     var tokenizer_url;
-    if (tokenizer_cfg[s_param['lang']]) {
+    if (tokenizer_cfg[lang]) {
       tokenizer_url = tokenizer_cfg[s_param['lang']];
     } else {
       tokenizer_url = tokenizer_cfg['default'];
@@ -387,7 +455,7 @@ function get_target_passage() {
           set_content('target', '<div class="error">Unable to load the requested text.</div>');
         }
       ); 
-  }
+}
     
 function add_target() {
     var next_target = ++target_num;
@@ -734,6 +802,7 @@ function get_repos() {
     $.getJSON(s_config['cts_services']['repos']).done(
         function(a_data) {
             repos = a_data;
+            InitAnnotation();
             populate_body_repo();
         }
     ).fail(
@@ -760,36 +829,38 @@ function populate_body_repo() {
         function(){
             if($(this).val() == body_urn_parts.repos){
                 $(this).prop('selected',true);
-                get_cts_inventory();
+                get_body_cts();
                 return false;
             }
        });
-  }
-  
-function get_cts_inventory() {
+}
+
+function get_body_cts() {
     var inventory = $('#body_repo option:selected').val();
     if (inventory == '-') {
         update_group_urns();
-    // if we don't already have this inventory's data, retrieve it and populate the selector
     } else if (inventories[inventory] == null) {
-        var request_url = s_config['cts_services']['capabilities'] + inventory;
+      get_cts_inventory(inventory,update_group_urns);
+    } else {
+      update_group_urns();
+    }
+}
+  
+function get_cts_inventory(inventory,callback) {
+    var request_url = s_config['cts_services']['capabilities'] + inventory;
 
-        $.getJSON(request_url).done(
-            function(a_data) {
-                inventories[inventory] = a_data;
-                update_group_urns();
-            }
-        ).fail(
-            function(jqXHR, textStatus, errorThrown) {
-                var msg = "Can't get capabilities of " + inventory;
-                alert(msg);
-                throw(msg);    
-            }
-        );
-      }
-      else {
-        update_group_urns();
-      }
+    $.getJSON(request_url).done(
+        function(a_data) {
+            inventories[inventory] = a_data;
+            callback.call();
+        }
+    ).fail(
+        function(jqXHR, textStatus, errorThrown) {
+            var msg = "Can't get capabilities of " + inventory;
+            alert(msg);
+            throw(msg);    
+        }
+    );
 }
    
 function clear_selector(select_element) {
