@@ -92,8 +92,6 @@ function Init(e_event,a_load) {
         }
     );
 
-   debugger;
-    
     s_getAnnotationURL =
         $("meta[name='perseids-getAnnotationURL']", document).attr("content").replace(/ITEMTYPE_REPLACE/,itemtype);
     s_putAnnotationURL =
@@ -425,7 +423,6 @@ function tokenize_passage(passage_url,inventory) {
             }
         }
     }
-    debugger;
     if (!lang && s_param['lang']) {
         lang = s_param['lang'];
     }
@@ -1266,7 +1263,7 @@ function ClickOnNew(a_evt)
                          '');
     var uri = $(response).text();
     if (uri) {
-        s_param['uri'] = uri;
+        s_param['uri'] = encodeURIComponent(uri);
         InitAnnotation();
     } else {
         var msg = "Something went wrong - unable to retrieve URI of new annotation";
