@@ -170,3 +170,7 @@ ul.perseids_menu ul.perseids_sub_menu li {
     width:100%;
 
 }
+
+.tei_sectionNum {
+    display: none;
+}

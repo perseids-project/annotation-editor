@@ -73,6 +73,9 @@ function Init(e_event,a_load) {
     s_peekURL =
         $("meta[name='perseids-peekURL']", document).attr("content");
 
+    s_ctsEndpoint = 
+        $("meta[name='perseids-ctsEndpoint']", document).attr("content");
+
     // get the peek info
     // eventually this will replace the info request and all other urls will come from here too
     var itemtype;
@@ -264,7 +267,7 @@ function InitAnnotation() {
     
     $(".target_uri").parents(".uri_wrapper").remove();
     $(".body_uri").parents(".uri_wrapper").remove();
-    
+   
     $("hasTarget",annotation).each(
         function() {
             var uri = $(this).attr("rdf:resource");
@@ -382,6 +385,10 @@ function InitAnnotation() {
 
 function get_target_passage() {
     var passage_url = current_annotation_target;
+    // if all we have is a cts urn, use the default cts endpoint
+    if (passage_url.match(/^urn:cts:/)) {
+      passage_url = s_ctsEndpoint.replace(/URN_REPLACE/,passage_url);
+    }
     // get the language from the inventory
     var found_in_inv = false;
     for (u in repos.urispaces) {
@@ -393,8 +400,7 @@ function get_target_passage() {
         }
     }
     if (! found_in_inv) {
-        tokenize_passage(passage_url,null);
-
+      tokenize_passage(passage_url,null);
     }
 }
 
@@ -406,18 +412,22 @@ function tokenize_passage(passage_url,inventory) {
             for (work in inventories[inventory][tg].works) {
                 for (version in inventories[inventory][tg].works[work].editions) {
                     text =  inventories[inventory][tg].works[work].editions[version];
-                    var urn_match = new RegExp(text.urn)
-                    if (passage_url.match(urn_match)) {
-                        lang = text.lang;
-                        break loopall; 
+                    if (text) {
+                        var urn_match = new RegExp(text.urn)
+                        if (passage_url.match(urn_match)) {
+                            lang = text.lang;
+                            break loopall; 
+                        }
                     }
                 }
                 for (version in inventories[inventory][tg].works[work].translations) {
                     text =  inventories[inventory][tg].works[work].editions[version];
-                    var urn_match = new RegExp(text.urn)
-                    if (passage_url.match(urn_match)) {
-                        lang = text.lang;
-                        break loopall; 
+                    if (text) {
+                        var urn_match = new RegExp(text.urn)
+                        if (passage_url.match(urn_match)) {
+                            lang = text.lang;
+                            break loopall; 
+                        }
                     }
                 }
             }
@@ -711,14 +721,14 @@ function merge_input(a_type) {
     var invalid = [];
     all.each(
       function() { 
-        if( $(this).val().match(/^https?:/) != null ) {
+        if( $(this).val().match(/^(https?|urn:cts):/) != null ) {
           valid.push(this);
         }
       }
     );
     all.each(
       function() { 
-        if($(this).val().match(/^https?:/) == null) {
+        if($(this).val().match(/^(https?|urn:cts):/) == null) {
           invalid.push(this);
         }
       }
