@@ -109,7 +109,6 @@ function Init(e_event,a_load) {
     // get the configuration information
     // json object is expected to contain:
     //  tokenizer
-    //  motivations
     //  passage transform
     $.ajax({
         dataType: "json",
@@ -126,6 +125,24 @@ function Init(e_event,a_load) {
             throw(msg);
         }
     );
+
+    // add the motivations (hardcoded for now)
+    s_config.motivations = [
+        { "label" : "Has Translation", "value" : "oa:linking_translation" },
+        { "label" : "Has Link", "value" : "oa:linking"},
+        { "label" : "Has Identity","value" : "oa:identifying"},
+        { "label" : "Has Classification", "value" : "oa:classifying"},
+        { "label" : "Has Comment", "value" : "oa:commenting"},
+        { "label" : "Has Fragment", "value" : "http://erlangen-crm.org/efrbroo/R15_has_fragment"},
+        { "label" : "Is Fragment Of", "value" : "http://erlangen-crm.org/efrbroo/R15i_is_fragment_of"},
+        { "label" : "Is Longer Version Of", "value" : "http://purl.org/saws/ontology#isLongerVersionOf"},
+        { "label" : "Is Shorter Version Of", "value" : "http://purl.org/saws/ontology#isShorterVersionOf"},
+        { "label" : "Is Variant Of", "value": "http://purl.org/saws/ontology#isVariantOf"},
+        { "label" : "Is Verbatim Of", "value" : "http://purl.org/saws/ontology#isVerbatimOf"},
+        { "label" : "Is Attributed To Author", "value":"http://purl.org/saws/ontology#isAttributedToAuthor"},
+        { "label" : "Has Member", "value":"http://purl.org/saws/ontology#hasMember"}
+    ];
+
      $.ajax({
         dataType: "xml",
         url: s_config['passage_xslt'] || "./cts_annotate.xsl",
