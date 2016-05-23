@@ -133,14 +133,14 @@ function Init(e_event,a_load) {
         { "label" : "Has Identity","value" : "oa:identifying"},
         { "label" : "Has Classification", "value" : "oa:classifying"},
         { "label" : "Has Comment", "value" : "oa:commenting"},
-        { "label" : "Has Fragment", "value" : "http://erlangen-crm.org/efrbroo/R15_has_fragment"},
-        { "label" : "Is Fragment Of", "value" : "http://erlangen-crm.org/efrbroo/R15i_is_fragment_of"},
-        { "label" : "Is Longer Version Of", "value" : "http://purl.org/saws/ontology#isLongerVersionOf"},
-        { "label" : "Is Shorter Version Of", "value" : "http://purl.org/saws/ontology#isShorterVersionOf"},
-        { "label" : "Is Variant Of", "value": "http://purl.org/saws/ontology#isVariantOf"},
+        { "label" : "Is Fragment Of", "value" : "http://erlangen-crm.org/efrbroo/R15_has_fragment"},
+        { "label" : "Has Fragment", "value" : "http://erlangen-crm.org/efrbroo/R15i_is_fragment_of"},
+        { "label" : "Has Longer Version", "value" : "http://purl.org/saws/ontology#isLongerVersionOf"},
+        { "label" : "Has Shorter Version", "value" : "http://purl.org/saws/ontology#isShorterVersionOf"},
+        { "label" : "Has Variant", "value": "http://purl.org/saws/ontology#isVariantOf"},
         { "label" : "Is Verbatim Of", "value" : "http://purl.org/saws/ontology#isVerbatimOf"},
-        { "label" : "Is Attributed To Author", "value":"http://purl.org/saws/ontology#isAttributedToAuthor"},
-        { "label" : "Has Member", "value":"http://purl.org/saws/ontology#hasMember"}
+        { "label" : "Is Attributed To Author", "value":"http://purl.org/saws/ontology#isAttributedAuthorOf"},
+        { "label" : "Has Member", "value":"http://purl.org/saws/ontology#isMemberOf"}
     ];
 
      $.ajax({
