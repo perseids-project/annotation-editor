@@ -896,16 +896,25 @@ function clear_selector(select_element) {
 function populate_selector(select_element,options,selected_value) {
     $("option",select_element).remove();
     var count = 0
+    var sortable = [];
     for (var k=0; k<options.length; k++) {
       var obj = options[k]
       for (var i in obj)
       {
         if (obj[i].urn != null) {
-          $(select_element).append("<option value='" + obj[i].urn + "'>" + obj[i].label + "</option>");
-          count++;
+          sortable.push([obj[i].urn,obj[i].label]);
         }
       }
     }
+    sortable.sort(function(a,b) { 
+      if (a[1] < b[1]) return -1;
+      if (a[1] > b[1]) return 1;
+      return 0;
+    });
+    for (var i=0; i<sortable.length; i++) {
+        $(select_element).append("<option value='" + sortable[i][0] + "'>" + sortable[i][1] + "</option>");
+    }
+    count = sortable.length;
     if (count == 0) {
       $(select_element).prop('disabled',true);
       $(select_element).hide();
