@@ -397,7 +397,11 @@ function InitAnnotation() {
     $('#body_content .token').mousedown(start_body);
     $('#body_content .token').mouseup(end_body);
     selected_body = $('#body_uri1').get(0);
+    var motivation = $("motivatedBy",annotation).attr("rdf:resource");
+    $("#annotation_motivation").val(motivation);
     set_state(false);
+    $("#annotation_motivation").val(motivation);
+    $('#annotation_motivation').change(function() {set_state(true);});
 }
 
 function get_target_passage() {
