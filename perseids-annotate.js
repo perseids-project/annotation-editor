@@ -1132,9 +1132,11 @@ function body_props_from_form() {
     var version = $('#version_urn option:selected').val();
     var lookup_ver = version.match(/^.*?([^\.]+)$/)[1];
     var props = 
-      inventories[inventory][textgroup].works[work].editions[lookup_ver] != null ? 
+      (inventories[inventory][textgroup].works[work].editions != null &&
+       inventories[inventory][textgroup].works[work].editions[lookup_ver] != null) ? 
       inventories[inventory][textgroup].works[work].editions[lookup_ver] : 
-      inventories[inventory][textgroup].works[work].translations[lookup_ver] != null ? 
+      (inventories[inventory][textgroup].works[work].translations != null &&
+      inventories[inventory][textgroup].works[work].translations[lookup_ver] != null) ? 
       inventories[inventory][textgroup].works[work].translations[lookup_ver] : {};
     return props; 
 }
@@ -1164,9 +1166,9 @@ function get_body_passage() {
             $('#body_content').html('<div class="loading">Loading...</div>');
             var lookup_ver = version.match(/^.*?([^\.]+)$/)[1];
             var props = 
-              inventories[inventory][textgroup].works[work].editions[lookup_ver] != null ? 
+              (inventories[inventory][textgroup].works[work].editions != null && inventories[inventory][textgroup].works[work].editions[lookup_ver] != null) ? 
               inventories[inventory][textgroup].works[work].editions[lookup_ver] : 
-              inventories[inventory][textgroup].works[work].translations[lookup_ver] != null ? 
+              (inventories[inventory][textgroup].works[work].translations != null && inventories[inventory][textgroup].works[work].translations[lookup_ver] != null) ? 
               inventories[inventory][textgroup].works[work].translations[lookup_ver] : {};
             var lang = props.lang || 'default';
             var request_inventory = props.item_id || inventory; 
