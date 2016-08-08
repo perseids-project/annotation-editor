@@ -980,7 +980,7 @@ function update_version_urns() {
         translations = inventories[inventory][textgroup].works[work].translations
       
     }
-    if (editions != null ) {
+    if (editions != null || translations != null) {
         populate_selector($('#version_urn'),[editions,translations],body_urn_parts.version)
     } else {
         // still need to empty it out
