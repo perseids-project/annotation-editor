@@ -1039,9 +1039,10 @@ function update_cite_info() {
             // lookup citation labels from stored inventory data
             // for each citation level, add label and input to the #citeinfo div in the form
             var citeinfo = 
-                inventories[inventory][textgroup].works[work].editions[version] != null ? 
+                (inventories[inventory][textgroup].works[work].editions != null && inventories[inventory][textgroup].works[work].editions[version] != null) ? 
                 inventories[inventory][textgroup].works[work].editions[version].cites :
-                inventories[inventory][textgroup].works[work].translations[version] != null ? 
+                (inventories[inventory][textgroup].works[work].translations != null &&
+                inventories[inventory][textgroup].works[work].translations[version] != null) ? 
                 inventories[inventory][textgroup].works[work].translations[version].cites : [];
               
             var range = body_urn_parts.passage ? body_urn_parts.passage.split('-') : [];
