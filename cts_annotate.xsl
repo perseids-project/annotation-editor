@@ -31,7 +31,7 @@
             <xsl:apply-templates select="node()"/>
         </xsl:element>
         <!-- add spaces back -->
-        <xsl:if test="local-name(following-sibling::*[1]) = 'w' or local-name(parent::*[1]) = 'seg'">
+        <xsl:if test="local-name(following-sibling::*[1]) = 'w' or local-name(parent::*[1]) = 'seg' or local-name(parent::*[1]) = 'hi'">
             <xsl:text> </xsl:text>
         </xsl:if>
     </xsl:template>
@@ -48,7 +48,7 @@
             <xsl:apply-templates select="node()"/>
         </xsl:element>
         <!-- add spaces back -->
-        <xsl:if test="following-sibling::w or parent::seg">
+        <xsl:if test="following-sibling::w or parent::seg or parent::hi">
             <xsl:text> </xsl:text>
         </xsl:if>
     </xsl:template>
