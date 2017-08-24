@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <title>Perseids:Annotate Passage</title>
+        
+       <!-- Parameters controlling behavior of the editor
+         All names are prefixed in the <meta> tags with "perseids-param-".
+         All can be overridden by parameters supplied at invocation time to
+         the url, using the names below without the "perseids-param-" prefix.
+            app: [editor|viewer]
+              Whether we're editing or just viewing the alignment.
+              If set to "viewer", other parameters controlling editing
+              behavior will be ignored.
+     
+        -->
+        <meta name="perseids-param-app" content="editor"/>
+        <meta name="perseids-param-numSentences" content="1"/>
+     
+        
+        <!-- a session cookie and HTTP header name can be supplied for session sharing with a server on the same domain
+         the content of the perseids-sessionTokenName attribute should be the name of the cookie set by the server
+         the content of the perseids-sessionHeaderName attribute should be the name of the HTTP header to send the token back to the server in -->
+        <meta name="perseids-sessionTokenName" content="csrftoken"/>
+        <meta name="perseids-sessionHeaderName" content="X-CSRF-Token"/>
+        
+        <!-- URLs to get and put a single annotation -->
+        <!-- The urls should contain the following placeholders which will be filled by 
+         the application:
+         DOC_REPLACE : gets replaced with the document identifier
+         URI_REPLACE : gets replaced with the sentence identifier
+        -->
+        <meta name="perseids-peekURL" content="http://localhost:8080/api/v1/items/DOC_REPLACE/peek?format=json"/>
+        <meta name="perseids-createAnnotationURL" content="http://localhost:8080/dmm_api/item/ITEMTYPE_REPLACE/DOC_REPLACE/append"/>
+        <meta name="perseids-getAnnotationURL" content="http://localhost:8080/dmm_api/item/ITEMTYPE_REPLACE/DOC_REPLACE/partial?q=uri%3DURI_REPLACE"/>
+        <meta name="perseids-putAnnotationURL" content="http://localhost:8080/dmm_api/item/ITEMTYPE_REPLACE/DOC_REPLACE/partial?q=uri%3DURI_REPLACE"/>
+        <meta name="perseids-getInfoURL" content="http://localhost:8080/dmm_api/item/ITEMTYPE_REPLACE/DOC_REPLACE/info/json"/>
+        <meta name="perseids-ctsEndpoint" content="http://localhost:8080/cts/getpassage/AnnotationSources/URN_REPLACE"/>
+        <meta name="perseids-annotationTransform" content="oa-update.xsl"/>
+        
+        <!-- URL to call when exiting and label to use on exit button -->
+        <!-- The url should contain the following placeholders which will be filled by 
+         the application:
+         DOC_REPLACE : gets replaced with the document identifier
+        -->
+        <meta name="perseids-exitURL" content="http://localhost:8080/dmm_api/item/ITEMTYPE_REPLACE/DOC_REPLACE/return/edit"/>
+        <meta name="perseids-exitLabel" content="Annotations List"/>
+        
+        
+        <link rel="stylesheet" type="text/css" href="perseids-annotate.css"/>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <script type="text/javascript" src="jshashtable-3.0.js"></script>
+        <script type="text/javascript" src="perseids-annotate.js"></script>
+        <script type="text/javascript" src="perseids-cite.js"></script>
+        
+        
+    </head>
+    <body onload="Init(event,true)">
+        
+        <div id="align-title"><span class="perseids-document-id"/></div>    
+        
+        <div class="perseids-ignore">
+          <div id="alph-page-header">
+            <img src="http://localhost:8080/images/perseids_notag_150.png" alt="Perseids Logo"/>
+          </div>
+        </div>
+           
+       <table style="border:none; padding:0; width:100%">
+        <tr>
+            <td>
+                <div class="controls perseids-ignore" id="edit-controls">
+                    <table style="border:none; padding:0">
+                        <tr>
+                            <td>
+                                <div id="navigation">
+                                    <table style="border:1px solid black; padding:0">
+                                        <tr>
+                                            <td>
+                                                <button id="first-button" onclick="ClickOnGoTo(event)"
+                                                    >&#160;</button>
+                                            </td>
+                                             <td>
+                                                <button id="prev-button" onclick="ClickOnGoTo(event)"
+                                                    >&#160;</button>
+                                            </td>
+                                            <td>
+                                                <label id="current-label">&#160;</label>
+                                            </td>
+                                            <td>
+                                                <button id="next-button" onclick="ClickOnGoTo(event)"
+                                                    >&#160;</button>
+                                            </td>
+                                            <td>
+                                                <button id="last-button" onclick="ClickOnGoTo(event)"
+                                                    >&#160;</button>
+                                            </td>
+                                            <td>
+                                                <form onsubmit="return SubmitGoTo(this)"
+                                                    name="sent-navigation-goto">
+                                                    <label>&#160;&#160;Go&#160;to&#160;annotation</label>
+                                                    <input type="text" name="s" size="100"/>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </td>
+                            <td>
+                                <button id="save-button" onclick="ClickOnSave(event)" style="display:none;">Save</button>
+                            </td>
+                            <td>
+                                <form onsubmit="return SubmitExit(this)" name="navigation-exit">
+                                    <input type="hidden" name="doc"/>
+                                    <input type="hidden" name="s"/>
+                                    <button type="submit">Exit</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <ul id="target_links" style="display:none;" class="perseids_menu">
+                </ul>
+           </td>
+       </tr>
+       </table>
+        <div id="perseids-put-notice"/>
+        <form id="update" action="POST" onsubmit="return check_input();">
+            <input type="hidden" name="valid_targets" id="valid_targets"/>
+            <input type="hidden" name="valid_bodies" id="valid_bodies"/>
+            <ul class="hints">
+                <li>Enter a URI identifying a resource that annotates your selected passage.</li>
+                <li> Or choose an annotation resource from the drop-downs and click
+                    'Request Resource' to load the corresponding text.</li>
+                <li>You can also select more specific passages within either text with your mouse. This will automatically
+                    generate a more specific URI for your annotation.</li>
+            </ul>
+            <div id="annotation_target_input">
+                <div class="annotation_header">Annotation Target</div>
+                <fieldset id="annotation_target_fields">
+                    <div class="targets" id="targets">
+                        <label>URI For Target:</label>
+                    </div>
+                     <div class="add_target">
+                         <label>(to select another range from within this passage)</label>
+                         <button id="add_target">Add</button>
+                     </div>
+                </fieldset>
+                <label>Target Passage:</label>
+                <div id="target_content" class="target">
+                    <div class="loading">Loading...</div>
+                </div>    
+                <div id="annotation_motivation_input">
+                    <select id="annotation_motivation" name="annotation_motivation"/>
+                </div>
+            </div>
+            <div id="annotation_body_input">
+                <div class="annotation_header">Annotation Resource</div>
+                <fieldset id="annotation_body_fields">
+                    <div class="bodies" id="bodies">
+                        <label>URI For Resource:</label>
+                    </div>
+                    <div class="add_body" style="display:none;">
+                        <label>(to select another range from within this passage)</label>
+                        <button id="add_body">Add</button>
+                    </div>
+                </fieldset>
+                <div id="annotation_commentary_link">
+                    
+                </div>
+                <div id="cite_annotation_selector">
+                    <p class='cite_selector_hint'>Click  to show/hide available CITE collections</p>
+                    <div id="cite_select_container" style ="display:none;">
+                        <select id='cite_selector' name="cite_selector" onchange="PerseidsCite.get_collection();">
+                            <option value="">Choose a collection...</option>
+                            <option value="http://perseids.org/collections/urn:cite:perseus:lci">Perseus Lost Content Items</option>
+                        </select>
+                    <iframe id="cite_frame"></iframe>   
+                    </div>
+                </div>
+                <div id="cts_annotation_selector">
+                    <p class="cts_selector_hint">Click  to show/hide available textual sources</p>
+                    <div id="cts_select_container" style="display:none;">   
+                        <select id="body_repo" name="body_repo"/>
+                        <select id="group_urn" name="group_urn"/>
+                        <select id="work_urn" name="work_urn"/>
+                        <select id="version_urn" name="version_urn"/>
+                        <div id="citeinfo">
+                            
+                        </div>
+                        <button id="cts_request_button">Request Resource</button>
+                        <p>Resource passage:</p>
+                        <div id="body_content"/>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <form action="delete_annotation"></form>
+        <form action="create_commentary"></form>
+    </body>
+</html>
